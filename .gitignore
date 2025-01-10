@@ -4,3 +4,15 @@ include
 lib
 lib64
 pyvenv.cfg
+
+# Jupiter Notebook
+etc
+share
+.ipynb_checkpoints
+.ipynb
+
+# pycache
+__pycache__
+
+# config
+config.json
