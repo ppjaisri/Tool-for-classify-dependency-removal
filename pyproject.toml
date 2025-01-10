@@ -5,10 +5,15 @@ description = ""
 authors = ["ppjaisri <ppjaisri@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+jupyter = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]
