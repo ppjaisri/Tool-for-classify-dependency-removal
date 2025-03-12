@@ -9,11 +9,25 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
+poetry = "^2.0.0"
+stdlib-list = "^0.11.0"
+esprima = "^4.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 jupyter = "^1.1.1"
+tornado = "^6.4.2"
+matplotlib = "^3.10.0"
+numpy = "^2.2.3"
+graphviz = "^0.20.3"
+prompt-toolkit = "^3.0.50"
+
+
+[tool.poetry.group.tokenizer.dependencies]
+tree-sitter = "^0.24.0"
+tree-sitter-languages = "^1.10.2"
+tree-sitter-javascript = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core"]
