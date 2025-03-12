@@ -16,3 +16,12 @@ __pycache__
 
 # config
 config.json
+
+# temp
+*temp*
+
+# test files
+*test*
+
+# Not used
+*visualizer*

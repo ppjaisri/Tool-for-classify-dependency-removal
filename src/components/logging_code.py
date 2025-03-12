@@ -1,0 +1,10 @@
+class logging_code:
+    EMPHZIED = '\033[1m'
+    ERROR = '\033[31m'
+    SUCCESS = '\033[32m'
+    WHITE = '\033[37m'
+    WARNING = '\033[93m'
+    INFO = '\033[94m'
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    ENDC = '\033[0m'
