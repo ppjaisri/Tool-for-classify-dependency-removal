@@ -141,7 +141,7 @@ def analyze_project(
                 # dependent_repo_name=repo,
                 dependency_removal_scenarios=dependency,
                 dataset_path=root_dataset_path,
-                keywords_path=keywords_path
+                keywords_path=keywords_path,
                 github_token=github_token,
                 update=update,
                 detail=detail,
