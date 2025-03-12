@@ -36,18 +36,20 @@ def analyze_project(
 
     github_token = config['github_token'] if 'github_token' in config.keys() else None
 
+    current_path = Path.cwd()
+    if 'src' not in str(current_path):
+        keywords_path = current_path.joinpath('src/patterns_and_keywords')
+    else:
+        keywords_path = current_path.joinpath('patterns_and_keywords')
+
     if 'dataset_path' in config.keys():
         root_dataset_path = config['dataset_path']
     else:
         # Prepare the application
-        current_path = Path.cwd()
-
         if 'src' not in str(current_path):
             root_dataset_path = current_path.parent.joinpath('dataset')
-            keywords_path = current_path.parent.joinpath('patterns_and_keywords')
         else:
             root_dataset_path = current_path.parent.parent.joinpath('dataset')
-            keywords_path = current_path.parent.parent.joinpath('patterns_and_keywords')
 
     parsed_url = urlparse(link_to_project_repository)
 

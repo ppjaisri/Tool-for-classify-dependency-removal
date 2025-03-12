@@ -44,13 +44,6 @@ def result_and_another_input(
     current_time = time()
     current_date = datetime.fromtimestamp(current_time).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    report_scheme = {
-        'project': f'{proj_org}:{proj_repo}',
-        'removed_version': '',
-        'removed_reason': '',
-        'removed_amount': 0,
-        'removed_scenarios': [],
-    }
     reports = dict()
     number_of_saved_dependency_folders = 0
     for each_folder_name in amount_of_each_project.keys():
