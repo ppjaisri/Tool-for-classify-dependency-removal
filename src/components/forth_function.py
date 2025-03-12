@@ -25,10 +25,10 @@ def extracttion_of_repalcement_and_removal_code(
     return replaced, deleted
 
 def compare_with_keyword(
-    dataset_path: Path,
+    patterns_path: Path,
     js_code: str
 ) -> bool:
-    patterns_path = dataset_path.joinpath('patterns_and_keywords')
+    # patterns_path = dataset_path.joinpath('patterns_and_keywords')
     with open(f'{patterns_path}/javascript_built_in_keywords.json', 'r') as file:
         javascript_built_in_keywords = json.load(file)
 
@@ -460,8 +460,6 @@ def removal_scenario_classification(
                         unknown.append(res)
                     continue
 
-                # print(1)
-
                 # ? Case no import line in deleted code
                 if not found_dependency_import_in_deleted:
                     if commit_messsage_declare_as_removed:
@@ -470,16 +468,12 @@ def removal_scenario_classification(
                 else:
                     found_dependency_usage_on_removed_code = True
 
-                # print(2)
-
                 # ? Case have import target dependency both in replaced and deleted code -> No dependency removal
                 if found_dependency_in_removed_code and found_dependency_in_replaced_code:
                     found_dependency_usage_on_removed_code = True
                     if commit_messsage_declare_as_removed:
                         unknown.append(res)
                     continue
-
-                # print(3)
 
                 # ? Catch the usage of dependency
                 if found_dependency_usage_in_deleted:
@@ -493,15 +487,12 @@ def removal_scenario_classification(
                         unknown.append(res)
                     continue
 
-                # print(4)
                 dependency_list_at_commit_date = list(package_json_at_commit_date.get('dependencies', {}).keys())
 
                 if dependency_name in dependency_list_at_commit_date:
                     if commit_messsage_declare_as_removed:
                         unknown.append(res)
                     continue
-
-                # print(5)
 
                 # ? Case move the dependency to other fields
                 other_fields_dependency_in_package_json = []
@@ -513,13 +504,9 @@ def removal_scenario_classification(
                 if other_fields_dependency_in_package_json != []:
                     continue
 
-                # print(6)
-
                 if dependency_name in dependency_list_at_commit_date and dependency_name in other_fields_dependency_in_package_json:
                     move_dep_to_other_fields.append(res)
                     continue
-
-                # print(7)
 
                 # ? Case replace the removed dependency
                 contain_keyword_in_replaced_code = compare_with_keyword(keywords_path, replaced_raw_snippet)
@@ -530,7 +517,6 @@ def removal_scenario_classification(
                     continue
 
                 else:
-                    # print(8)
                     # ? Case only remove the dependency
                     if not found_dependency_usage_on_removed_code:
                         remove_bloat_dependency.append(res)
@@ -541,8 +527,8 @@ def removal_scenario_classification(
                         continue
 
                     elif not contain_keyword_in_replaced_code:
-                        print(commit_url)
-                        print(file_name)
+                        # print(commit_url)
+                        # print(file_name)
                         if change_status == 'removed':
                             shrink_library.append(res)
                             continue
