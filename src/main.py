@@ -44,8 +44,10 @@ def analyze_project(
 
         if 'src' not in str(current_path):
             root_dataset_path = current_path.parent.joinpath('dataset')
+            keywords_path = current_path.parent.joinpath('patterns_and_keywords')
         else:
             root_dataset_path = current_path.parent.parent.joinpath('dataset')
+            keywords_path = current_path.parent.parent.joinpath('patterns_and_keywords')
 
     parsed_url = urlparse(link_to_project_repository)
 
@@ -139,6 +141,7 @@ def analyze_project(
                 # dependent_repo_name=repo,
                 dependency_removal_scenarios=dependency,
                 dataset_path=root_dataset_path,
+                keywords_path=keywords_path
                 github_token=github_token,
                 update=update,
                 detail=detail,

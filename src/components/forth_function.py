@@ -203,6 +203,7 @@ def removal_scenario_classification(
     # dependent_repo_name: str,
     dependency_removal_scenarios: dict,
     dataset_path: Path,
+    keywords_path: Path,
     github_token: str,
     update: bool = False,
     detail: bool = False,
@@ -521,7 +522,7 @@ def removal_scenario_classification(
                 # print(7)
 
                 # ? Case replace the removed dependency
-                contain_keyword_in_replaced_code = compare_with_keyword(dataset_path, replaced_raw_snippet)
+                contain_keyword_in_replaced_code = compare_with_keyword(keywords_path, replaced_raw_snippet)
 
                 got_result = True
                 if replaced_dependencies:
