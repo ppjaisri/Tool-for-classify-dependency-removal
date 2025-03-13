@@ -587,6 +587,10 @@ def removal_scenario_classification(
                         print('package_json_at_commit_date:', json.dumps(package_json_at_commit_date, indent=4))
                         print('package_json_before_commit_date:', json.dumps(package_json_before_commit_date, indent=4))
 
+                    if package_json_at_commit_date is None:
+                        unknown.append(res)
+                        continue
+
                     # ? Case no dependency changes in the package.json
                     if 'dependencies' not in package_json_at_commit_date.keys() and 'dependencies' not in package_json_before_commit_date.keys():
                         continue
