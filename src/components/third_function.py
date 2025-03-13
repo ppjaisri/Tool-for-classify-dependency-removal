@@ -290,6 +290,7 @@ def extract_usage_periods(
                 "version": period["version"],
                 "installed_date": period["installed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "removed_date": period["removed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "usage_period": (period["removed"] - period["installed"]).days
             }
             for period in periods
         ]

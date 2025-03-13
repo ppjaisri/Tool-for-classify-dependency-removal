@@ -246,6 +246,7 @@ def removal_scenario_classification(
             f'{logging_code.INFO}Removed Version{logging_code.ENDC}: {removed_dependency_version}',
             f'{logging_code.INFO}Installed date{logging_code.ENDC} : {dependency_removal_scenario["installed_date"]}',
             f'{logging_code.INFO}Removed date{logging_code.ENDC}   : {dependency_removal_scenario["removed_date"]}',
+            f'{logging_code.INFO}Usage period{logging_code.ENDC}   : {dependency_removal_scenario["usage_period"]} day(s)',
         ]
 
         print('\n'.join(scenario_report))
