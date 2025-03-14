@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tool-for-classify-dependency-removal"
-version = "0.1.0"
+version = "1.0.9"
 description = ""
 authors = ["ppjaisri <ppjaisri@gmail.com>"]
 license = "MIT"
@@ -22,12 +22,8 @@ tornado = "^6.4.2"
 matplotlib = "^3.10.0"
 numpy = "^2.2.3"
 graphviz = "^0.20.3"
+pandas = "^2.2.3"
 
-
-[tool.poetry.group.tokenizer.dependencies]
-tree-sitter = "^0.24.0"
-tree-sitter-languages = "^1.10.2"
-tree-sitter-javascript = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core"]

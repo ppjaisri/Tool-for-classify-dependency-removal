@@ -409,8 +409,8 @@ def compare_replaced_code_with_dependency(
     common_ngrams_replaced_deleted = len(set(replaced_n_grams) & set(deleted_n_grams))
     union_ngrams_replaced_deleted = len(set(replaced_n_grams) | set(deleted_n_grams))
 
-    if union_ngrams_replaced_deleted == 0:
-        print('Not a code clone')
+    # if union_ngrams_replaced_deleted == 0:
+    #     print('Not a code clone')
 
     similarity_score = detector.compute_lcs_similarity(
         seq1=replaced_node_sequence,

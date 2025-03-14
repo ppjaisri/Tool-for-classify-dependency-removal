@@ -65,10 +65,11 @@ def result_and_another_input(
 
         filtered_scenarios = []
         for scenario in result['move_dep_to_other_fields']:
-            if scenario['name'] != dependency_name:
-                continue
-            else:
-                filtered_scenarios.append(scenario)
+            if 'name' in scenario.keys():
+                if scenario['name'] != dependency_name:
+                    continue
+                else:
+                    filtered_scenarios.append(scenario)
 
         result['scenarios']['move_dep_to_other_fields'] = filtered_scenarios
 
