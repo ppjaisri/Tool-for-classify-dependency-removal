@@ -61,25 +61,30 @@ def ask_user_to_choose_dependency(
 
     overlap = users_input & first_res
 
-    while not overlap:
-        if 'all' in users_input:
-            break
-        elif'end' in users_input:
-            return False
-        print('The dependency that you entered is not in the list of dependencies.')
-        print('Please enter the correct dependency.')
-        print(first_res)
-        try:
-            print('Please enter prefer dependency:')
-            users_input = prompt('> ', completer=dependency_completer)
-            users_input = set(users_input.strip().split(','))
+    # ! Will be disabled for testing, will enable it later
+    # while not overlap:
+    #     if 'all' in users_input:
+    #         break
+    #     elif'end' in users_input:
+    #         return False
+    #     print('The dependency that you entered is not in the list of dependencies.')
+    #     print('Please enter the correct dependency.')
+    #     print(first_res)
+    #     try:
+    #         print('Please enter prefer dependency:')
+    #         users_input = prompt('> ', completer=dependency_completer)
+    #         users_input = set(users_input.strip().split(','))
 
-            overlap = users_input & first_res
-            # print(first_res)
-        except KeyboardInterrupt:
-            return False
+    #         overlap = users_input & first_res
+    #         # print(first_res)
+    #     except KeyboardInterrupt:
+    #         return False
 
-    if users_input == {'all'}:
-        return first_res
+    # if users_input == {'all'}:
+    #     return first_res
 
-    return users_input
+    # return users_input
+    # ! For testing purpose
+    if overlap:
+        return users_input
+    exit(0)

@@ -101,6 +101,9 @@ def result_and_another_input(
             elif group == 'unknown':
                 readable_group = 'Unknown'
 
+            each_scenario_sha = [each_scenario_['commit_sha'] for each_scenario_ in each_scenario]
+            each_scenario_sha = list(set(each_scenario_sha))
+
             if len(each_scenario) > 0:
                 if dependency_name not in reports.keys():
                     reports[dependency_name] = {
@@ -108,7 +111,8 @@ def result_and_another_input(
                             'all_removed': len(each_scenario),
                             'scenarios': {
                                 readable_group: len(each_scenario)
-                            }
+                            },
+                            'commit_sha': each_scenario_sha
                         }
                     }
                 else:
@@ -117,7 +121,8 @@ def result_and_another_input(
                             'all_removed': len(each_scenario),
                             'scenarios': {
                                 readable_group: len(each_scenario)
-                            }
+                            },
+                            'commit_sha': each_scenario_sha
                         }
                     else:
                         reports[dependency_name][removed_version]['all_removed'] += len(each_scenario)
@@ -130,13 +135,14 @@ def result_and_another_input(
 
     with open(f'{current_save_path}/report.txt', 'w') as file:
         report_full = []
+        report_full.append('Results of the analysis')
 
         for dependency_name_in_report, report in reports.items():
             report_full.append(dependency_name_in_report)
             for version, report_description in report.items():
                 report_full.append(f'  - Version {version}: Found {report_description['all_removed']} removed scenarios.')
                 for group, amount in report_description['scenarios'].items():
-                    report_full.append(f'    - {group}: found {amount} times.')
+                    report_full.append(f'    - {group}: found {amount} times. {report_description['commit_sha']}')
                 report_full.append('')
             report_full.append('#' * 50)
 
@@ -149,15 +155,7 @@ def result_and_another_input(
 
     # print(json.dumps(report_string, indent=4))
 
-    first_res = []
-    for group in [moved_dependencies, removed_dependencies]:
-        for dependency in group:
-            if dependency['name'] not in first_res:
-                first_res.append(dependency['name'])
-
-    first_res = sorted(first_res)
-    dependency_completer = WordCompleter(first_res, ignore_case=True, sentence=True)
-
+    print('-' * 50)
     print()
     print(report_string)
 
@@ -166,41 +164,54 @@ def result_and_another_input(
     print('If you prefer to stop the analysis, please enter \"end\" or \"ctrl + c\".')
     print()
 
-    for index, dependency in enumerate(first_res, 1):
-        status = ' << {}Analyzed{}'.format(logging_code.SUCCESS, logging_code.ENDC) if dependency in previous_dependency else ''
-        print('  {}. \"{}{}{}\"{}'.format(
-            index,
-            logging_code.WARNING,
-            dependency,
-            logging_code.ENDC,
-            status
-        ))
+    # ! For testing will skip the input receive part
+    # first_res = []
+    # for group in [moved_dependencies, removed_dependencies]:
+    #     for dependency in group:
+    #         if dependency['name'] not in first_res:
+    #             first_res.append(dependency['name'])
 
-    try:
-        print('Please enter the dependency name: ')
-        users_input = prompt('> ', completer=dependency_completer)
-    except KeyboardInterrupt:
-        return False, None
+    # first_res = sorted(first_res)
+    # dependency_completer = WordCompleter(first_res, ignore_case=True, sentence=True)
 
-    users_input = users_input.strip().split(',')
-    users_input = set(users_input)
-    first_res = set(first_res)
+    # for index, dependency in enumerate(first_res, 1):
+    #     status = ' << {}Analyzed{}'.format(logging_code.SUCCESS, logging_code.ENDC) if dependency in previous_dependency else ''
+    #     print('  {}. \"{}{}{}\"{}'.format(
+    #         index,
+    #         logging_code.WARNING,
+    #         dependency,
+    #         logging_code.ENDC,
+    #         status
+    #     ))
 
-    overlap = users_input & first_res
+    # try:
+    #     print('Please enter the dependency name: ')
+    #     users_input = prompt('> ', completer=dependency_completer)
+    # except KeyboardInterrupt:
+    #     return False, None
 
-    while not overlap:
-        if 'end' in users_input:
-            return False, None
-        if 'all' in users_input:
-            return True, first_res
-        print('The dependency that you entered is not in the list of dependencies.')
-        print('Please enter the correct dependency.')
-        try:
-            print()
-            print('Please enter the dependency name: ')
-            users_input = prompt('> ', completer=dependency_completer)
-            # print(first_res)
-        except KeyboardInterrupt:
-            return False, None
+    # users_input = users_input.strip().split(',')
+    # users_input = set(users_input)
+    # first_res = set(first_res)
 
-    return True, users_input
+    # overlap = users_input & first_res
+
+    # while not overlap:
+    #     if 'end' in users_input:
+    #         return False, None
+    #     if 'all' in users_input:
+    #         return True, first_res
+    #     print('The dependency that you entered is not in the list of dependencies.')
+    #     print('Please enter the correct dependency.')
+    #     try:
+    #         print()
+    #         print('Please enter the dependency name: ')
+    #         users_input = prompt('> ', completer=dependency_completer)
+    #         # print(first_res)
+    #     except KeyboardInterrupt:
+    #         return False, None
+
+    # return True, users_input
+
+    # ! If not testing, please remove this line to enable the input receive part
+    return False, None

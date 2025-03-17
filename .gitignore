@@ -21,7 +21,7 @@ config.json
 *temp*
 
 # test files
-*test*
+# *test*
 
 # Not used
 *visualizer*

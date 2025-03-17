@@ -412,6 +412,7 @@ def removal_scenario_classification(
                     # 'removed_dependency_name': dependency_name,
                     'file_name': file_name,
                     'url': commit_url,
+                    'commit_sha': commit_sha,
                     'commit_message': {
                         'raw': commit_message,
                         'preprocess': preprocess_commit_message,
@@ -570,6 +571,7 @@ def removal_scenario_classification(
                         # 'removed_dependency_name': dependency_name,
                         'file_name': 'package.json',
                         'url': commit_url,
+                        'commit_sha': commit_sha,
                         'commit_message': {
                             'raw': commit_message,
                             'preprocess': preprocess_commit_message,
