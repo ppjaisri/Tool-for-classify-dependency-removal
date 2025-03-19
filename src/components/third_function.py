@@ -34,96 +34,96 @@ def get_commit_history(
         saved_files = [str(file.name) for file in saved_files]
 
     request_left = None
-    while True:
-        if isinstance(since, str):
-            # try:
-            #     since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
-            # except ValueError:
-                since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
-                
-        if isinstance(until, str):
-            # try:
-            #     until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
-            # except ValueError:
-                until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
-
-        if since > until:
-            since, until = until, since
-
-        # since = since.strftime('%Y-%m-%dT%H:%M:%SZ')
-        # until = until.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-        since_str = since.replace(hour=0, minute=0, second=0).strftime(
-            '%Y-%m-%dT%H:%M:%SZ')
-        until_str = until.replace(hour=23, minute=59, second=59).strftime(
-            '%Y-%m-%dT%H:%M:%SZ')
-
-        commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100&page={page}'
-        commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100'
-        # print(commit_api)
-        # break
-
-        file_name = f'{since_str}_to_{until_str}_commits_page_{page}.json'
-        need_to_delete_old_file = {'delete': False, 'file': None}
-        if saved_files is not None:
-            if file_name in saved_files:
-                if not update:
-                    if detail:
-                        print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
-                            logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
-                    return None
-                else:
-                    for saved_file in saved_files:
-                        current_file_element = saved_file.split('_')
-                        current_since = datetime.strptime(current_file_element[0], '%Y-%m-%dT%H:%M:%SZ')
-                        current_until = datetime.strptime(current_file_element[2], '%Y-%m-%dT%H:%M:%SZ')
-
-                        older = since < current_since
-                        same_old = since == current_since
-                        newer = until > current_until
-                        same_new = until == current_until
-                        if (older and newer) or (same_old and newer) or (older and same_new):
-                            need_to_delete_old_file['delete'] = True
-                            need_to_delete_old_file['file'] = saved_file
-                            break
-                            
-                        else:
-                            if detail:
-                                print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
-                                    logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
-                            break
-
-        res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
-        if res is None or res == [] or len(res) == 0:
-            # print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
-            #       logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
-            break
-
-        if not save_path.exists():
-            save_path.mkdir(parents=True)
-            if detail:
-                print(f'        {logging_code.INFO}Create{logging_code.ENDC} folder at {
-                    logging_code.WARNING}{save_path}{logging_code.ENDC}')
-            saved_files = []
-
-        with open(f'{save_path}/{file_name}', 'w+') as file:
-            json.dump(res, file, indent=4)
+    # while True:
+    if isinstance(since, str):
+        # try:
+        #     since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
+        # except ValueError:
+            since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
             
-        if need_to_delete_old_file['delete']:
-            old_file = save_path.joinpath(need_to_delete_old_file['file'])
-            old_file.unlink()
-            if detail:
-                print(f'        {logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
-                    logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
-        else:
-            if detail:
-                print(f'        {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
-                  logging_code.ENDC} in the folder {logging_code.WARNING}{save_path}{logging_code.ENDC}')
+    if isinstance(until, str):
+        # try:
+        #     until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
+        # except ValueError:
+            until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
+
+    if since > until:
+        since, until = until, since
+
+    # since = since.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # until = until.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    since_str = since.replace(hour=0, minute=0, second=0).strftime(
+        '%Y-%m-%dT%H:%M:%SZ')
+    until_str = until.replace(hour=23, minute=59, second=59).strftime(
+        '%Y-%m-%dT%H:%M:%SZ')
+
+    commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100&page={page}'
+    commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100'
+    # print(commit_api)
+    # break
+
+    file_name = f'{since_str}_to_{until_str}_commits_page_{page}.json'
+    need_to_delete_old_file = {'delete': False, 'file': None}
+    if saved_files is not None:
+        if file_name in saved_files:
+            if not update:
+                if detail:
+                    print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
+                        logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
+                return None
+            else:
+                for saved_file in saved_files:
+                    current_file_element = saved_file.split('_')
+                    current_since = datetime.strptime(current_file_element[0], '%Y-%m-%dT%H:%M:%SZ')
+                    current_until = datetime.strptime(current_file_element[2], '%Y-%m-%dT%H:%M:%SZ')
+
+                    older = since < current_since
+                    same_old = since == current_since
+                    newer = until > current_until
+                    same_new = until == current_until
+                    if (older and newer) or (same_old and newer) or (older and same_new):
+                        need_to_delete_old_file['delete'] = True
+                        need_to_delete_old_file['file'] = saved_file
+                        break
+                        
+                    else:
+                        if detail:
+                            print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
+                                logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
+                        break
+
+    res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
+    # if res is None or res == [] or len(res) == 0:
+    #     # print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
+    #     #       logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
+    #     break
+
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+        if detail:
+            print(f'        {logging_code.INFO}Create{logging_code.ENDC} folder at {
+                logging_code.WARNING}{save_path}{logging_code.ENDC}')
+        saved_files = []
+
+    with open(f'{save_path}/{file_name}', 'w+') as file:
+        json.dump(res, file, indent=4)
+        
+    if need_to_delete_old_file['delete']:
+        old_file = save_path.joinpath(need_to_delete_old_file['file'])
+        old_file.unlink()
+        if detail:
+            print(f'        {logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
+                logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+    else:
+        if detail:
+            print(f'        {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
+                logging_code.ENDC} in the folder {logging_code.WARNING}{save_path}{logging_code.ENDC}')
 
 
-        if detail and level_of_logging > 0:
-            print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
-        page += 1
+    if detail and level_of_logging > 0:
+        print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+        # page += 1
 
     return request_left
 
