@@ -93,6 +93,15 @@ def analyze_package_json_versions_with_dates(
         previous_dependencies = current_dependencies
         previous_timestamp = current_timestamp
 
+        moved_dependencies = [dict(t) for t in {tuple(
+            d.items()) for d in moved_dependencies}]
+        removed_dependencies = [dict(t) for t in {tuple(
+            d.items()) for d in removed_dependencies}]
+        installed_dependencies = [dict(t) for t in {tuple(
+            d.items()) for d in installed_dependencies}]
+        updated_dependencies = [dict(t) for t in {tuple(
+            d.items()) for d in updated_dependencies}]
+
     return moved_dependencies, removed_dependencies, installed_dependencies, updated_dependencies
 
 

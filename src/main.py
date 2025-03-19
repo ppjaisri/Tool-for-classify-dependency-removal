@@ -1,6 +1,6 @@
 #/usr/bin/env python3.12
 import json
-import sys
+import traceback
 import argparse
 
 from urllib.parse import urlparse
@@ -140,10 +140,14 @@ def analyze_project(
 
             classified_scenarios = []
             for dependency in res:
+                dependency_name = dependency[f'{org}:{repo}']['user_input']
+                filtered_moved = [scenario for scenario in moved if scenario['name'] == dependency_name and scenario['moved_to'] != 'dependencies']
+
                 dependency_res = removal_scenario_classification(
                     # dependent_org_name=org,
                     # dependent_repo_name=repo,
                     dependency_removal_scenarios=dependency,
+                    filtered_moved=filtered_moved,
                     dataset_path=root_dataset_path,
                     keywords_path=keywords_path,
                     github_token=github_token,
@@ -152,10 +156,8 @@ def analyze_project(
                     level_of_logging=level_of_logging
                 )
 
-                filtered_moved = [scenario for scenario in moved if scenario['name'] == dependency_res['dependency_name']]
-
-                dependency_res['move_dep_to_other_fields'].extend(
-                    filtered_moved)
+                # dependency_res['move_dep_to_other_fields'].extend(
+                #     filtered_moved)
                 classified_scenarios.append(dependency_res)
 
             # 5th function (last function)
@@ -164,6 +166,7 @@ def analyze_project(
             # If users want to continue the analysis with other dependency
             # they can choose the dependency name and then the analysis will be continued.
             # The dependency name are provided from 2nd fucntion.
+            # print(json.dumps(classified_scenarios, indent=4))
 
             continue_analyze, users_input = result_and_another_input(
                 proj_org=org,
@@ -177,6 +180,8 @@ def analyze_project(
             )
     except Exception as e:
         print('{}Error: {}{}'.format(logging_code.ERROR, e, logging_code.ENDC))
+        print('{}Traceback:{}'.format(logging_code.ERROR, logging_code.ENDC))
+        print(traceback.print_exc())
         exit(-1)
 
     # print(f'exit code: {sys.exit(0)}')

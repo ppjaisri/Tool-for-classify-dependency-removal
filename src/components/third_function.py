@@ -59,6 +59,7 @@ def get_commit_history(
             '%Y-%m-%dT%H:%M:%SZ')
 
         commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100&page={page}'
+        commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100'
         # print(commit_api)
         # break
 
@@ -237,6 +238,41 @@ def extract_usage_periods(
     for upd in updated:
         updated_dict[upd["name"].lower()].append(upd)
 
+    installed_dict = defaultdict(list)
+    for inst in installed:
+        installed_dict[inst["name"].lower()].append(inst)
+
+    moved_dict = defaultdict(list)
+    for mov in moved:
+        moved_dict[mov["name"].lower()].append(mov)
+
+    for entry in moved:
+        name = entry["name"].lower()
+        moved_to = entry["moved_to"]
+        moved_version = entry["version"]
+        moved_date = parse_date(entry["moved_date"]) if entry["moved_date"] else None
+
+        # Try to find an update scenario where the moved version is an updated version of an installed version
+        installed_date = None
+        if name in updated_dict:
+            for upd in updated_dict[name]:
+                if upd["new_version"] == moved_version:
+                    installed_date = parse_date(upd["updated_date"])
+                    break
+
+        # if installed_date is None and moved_to == 'dependnecies':
+        #     installed_date = moved_date
+
+        if installed_date is None:
+            continue
+
+        usage_periods[name].append({
+            "version": moved_version,
+            "installed": installed_date,
+            "event": 'moved',
+            "removed": moved_date
+        })
+
     # Process removed dependencies
     for entry in removed:
         name = entry["name"].lower()
@@ -250,7 +286,13 @@ def extract_usage_periods(
                 if upd["new_version"] == removed_version:
                     installed_date = parse_date(upd["updated_date"])
                     break  # Take the first matching update scenario
-        
+
+        if installed_date is None and name in installed_dict:
+            for inst in installed_dict[name]:
+                if inst["version"] == removed_version:
+                    installed_date = parse_date(inst["installed_date"])
+                break
+    
         if installed_date is None:
             continue  # Skip if no valid installed date is found
         
@@ -267,6 +309,7 @@ def extract_usage_periods(
         usage_periods[name].append({
             "version": removed_version, 
             "installed": installed_date, 
+            "event": 'removed',
             "removed": removed_date
         })
 
@@ -288,6 +331,7 @@ def extract_usage_periods(
             {
                 "project_name": project_name,
                 "version": period["version"],
+                'event': period['event'],
                 "installed_date": period["installed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "removed_date": period["removed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "usage_period": (period["removed"] - period["installed"]).days
@@ -334,52 +378,57 @@ def get_interval_of_usage_period(
         updated=updated_dependencies
     )
 
-    if detail and level_of_logging > 0:
-        print(json.dumps(usage_periods, indent=4))
-
     if detail and level_of_logging > 1:
         print(f'Moved dependencies: {json.dumps(moved_dependencies, indent=4)}')
         print(f'Removed dependencies: {json.dumps(removed_dependencies, indent=4)}')
         print(f'Installed dependencies: {json.dumps(installed_dependencies, indent=4)}')
         print(f'Updated dependencies: {json.dumps(updated_dependencies, indent=4)}')
 
+    if detail and level_of_logging > 0:
+        print(json.dumps(usage_periods, indent=4))
+
     for user_input in users_input:
         if user_input not in usage_periods:
             if detail:
                 print(f"Skipping {user_input}, as no complete usage period found.")
             continue
-
         for usage_interval in usage_periods[user_input]:
             commits_history_path = dataset_path.joinpath("02_commits_since_install_until_remove")
             commits_description_history_path = dataset_path.joinpath("03_commits_description_since_install_until_remove")
 
+            event = usage_interval['event']
+            if event == 'removed':
+                if usage_interval['usage_period'] == 0:
+                    # if detail:
+                    #     print(f"Skipping {user_input}, as usage period is 0 days.")
+                    continue
+                get_commit_history(
+                    org=dependent_org_name,
+                    repo=dependent_repo_name,
+                    github_token=github_token,
+                    save_path=commits_history_path,
+                    since=usage_interval['installed_date'],
+                    until=usage_interval['removed_date'] if 'removed_date' in usage_interval else usage_interval['moved_date'],
+                    update=update,
+                    detail=detail,
+                    level_of_logging=level_of_logging
+                )
 
-            get_commit_history(
-                org=dependent_org_name,
-                repo=dependent_repo_name,
-                github_token=github_token,
-                save_path=commits_history_path,
-                since=usage_interval['installed_date'],
-                until=usage_interval['removed_date'] if 'removed_date' in usage_interval else usage_interval['moved_date'],
-                update=update,
-                detail=detail,
-                level_of_logging=level_of_logging
-            )
-
-            commit_description(
-                org=dependent_org_name,
-                repo=dependent_repo_name,
-                commits_history_path=commits_history_path,
-                save_path=commits_description_history_path,
-                github_token=github_token,
-                update=update,
-                detail=detail,
-                level_of_logging=level_of_logging
-            )
+                commit_description(
+                    org=dependent_org_name,
+                    repo=dependent_repo_name,
+                    commits_history_path=commits_history_path,
+                    save_path=commits_description_history_path,
+                    github_token=github_token,
+                    update=update,
+                    detail=detail,
+                    level_of_logging=level_of_logging
+                )
 
             res = {
                 f'{dependent_org_name}:{dependent_repo_name}': {
                     'user_input': user_input,
+                    'event': event,
                     'usage_interval_scenarios': usage_interval,
                 }
             }

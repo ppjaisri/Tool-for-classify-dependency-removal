@@ -63,15 +63,15 @@ def result_and_another_input(
         removed_version = result['version']
         # print(json.dumps(result, indent=4))
 
-        filtered_scenarios = []
-        for scenario in result['move_dep_to_other_fields']:
-            if 'name' in scenario.keys():
-                if scenario['name'] != dependency_name:
-                    continue
-                else:
-                    filtered_scenarios.append(scenario)
+        # filtered_scenarios = []
+        # for scenario in result['move_dep_to_other_fields']:
+        #     if 'name' in scenario.keys():
+        #         if scenario['name'] != dependency_name:
+        #             continue
+        #         else:
+        #             filtered_scenarios.append(scenario)
 
-        result['scenarios']['move_dep_to_other_fields'] = filtered_scenarios
+        # result['scenarios']['move_dep_to_other_fields'] = filtered_scenarios
 
         # for scenario in result['scenarios']:
         scenario = result['scenarios']
