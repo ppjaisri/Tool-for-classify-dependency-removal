@@ -12,7 +12,6 @@ def run_script(
     command_line_script: str,
     target_dependency: str
 ) -> None:
-    print(command_line_script)
     command_line_script = command_line_script.split(' ')
 
     try:
@@ -114,13 +113,13 @@ def main():
     # data = pd.read_csv(dataset_file_path)
     data = pd.read_csv(f'{root_path}/update_test.csv')
 
-    progress = 0
-    try:
-        with open(f'{root_path}/temp_progress.json', 'r') as file:
-            progress = json.load(file)
-            progress = progress['index']
-    except:
-        pass
+    progress = 600
+    # try:
+    #     with open(f'{root_path}/temp_progress.json', 'r') as file:
+    #         progress = json.load(file)
+    #         progress = progress['index']
+    # except:
+    #     pass
 
     not_classified_data = data[data['Category'].isnull()]
 
@@ -128,23 +127,22 @@ def main():
     # ? python3 -m src.main -a "https://github.com/ant-design/react-slick" -d 0 --config src/config.json
     for index, row in not_classified_data.iterrows():
         print('Index:', index)
-        while index < progress:
+        if index < progress:
             continue
         target_dependency = row['removed_dependency']
         link_to_project_repository = row['commit_url'].split('/commit')[0]
         commit_sha = row['commit_url'].split('/commit/')[1]
-        if 'angular' in link_to_project_repository:
-            continue
-        if 'emotion' in link_to_project_repository:
-            continue
-        prompt = 'python3 {} {} {} {} {} {}'.format(
-            '-m',
+        # if 'angular' in link_to_project_repository:
+        #     continue
+        # if 'emotion' in link_to_project_repository:
+        #     continue
+        prompt = 'python3 -m {} -a -u {} --config {} {}'.format(
             'src.main',
-            '-a -u',
             link_to_project_repository,
-            '--config',
-            'src/config.json'
+            'src/config.json',
+            '-d 1'
         )
+        print(prompt)
         
         res_output = run_script(prompt, target_dependency)
         print('Exit code from run_script:', res_output['exit_code'])
