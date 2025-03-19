@@ -45,6 +45,7 @@ def analyze_project(
 
     if 'dataset_path' in config.keys():
         root_dataset_path = config['dataset_path']
+        root_dataset_path = Path(root_dataset_path)
     else:
         # Prepare the application
         if 'src' not in str(current_path):
