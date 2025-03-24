@@ -113,7 +113,7 @@ def main():
     # data = pd.read_csv(dataset_file_path)
     data = pd.read_csv(f'{root_path}/update_test.csv')
 
-    progress = 600
+    progress = 0
     # try:
     #     with open(f'{root_path}/temp_progress.json', 'r') as file:
     #         progress = json.load(file)
@@ -136,11 +136,11 @@ def main():
         #     continue
         # if 'emotion' in link_to_project_repository:
         #     continue
-        prompt = 'python3 -m {} -a -u {} --config {} {}'.format(
+        prompt = 'python3 -m {} -a {} --config {} {}'.format(
             'src.main',
             link_to_project_repository,
             'src/config.json',
-            '-d 1'
+            '-d 0'
         )
         print(prompt)
         
@@ -186,7 +186,10 @@ def main():
                 
                 for reason in reasons:
                     list_of_commit_sha = reason.split('[')[1].strip(']')
-                    list_of_commit_sha = [i.strip().strip("'") for i in list_of_commit_sha.split(',')]
+                    if list_of_commit_sha != '':
+                        list_of_commit_sha = [i.strip().strip("'") for i in list_of_commit_sha.split(',')]
+                    else:
+                        list_of_commit_sha = []
                     main_reason = reason.split(':')[0].strip()
 
                     print(list_of_commit_sha)
@@ -218,3 +221,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print('Finished !!')
