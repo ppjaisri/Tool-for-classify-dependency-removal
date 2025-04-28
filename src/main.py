@@ -79,30 +79,28 @@ def analyze_project(
         level_of_logging=level_of_logging
     )
 
-    if not moved and not removed:
+    if not removed:
         if not updated:
             print('{}The link is unusable.{} Please check the link and try again.'.format(
                 logging_code.ERROR, logging_code.ENDC
             ))
-            exit(0)
-
         else:
             print('{}The project has no dependency removal.{}'.format(
                 logging_code.SUCCESS, logging_code.ENDC
             ))
-            exit(0)
+        exit(0)
 
     # 2nd function
     # Show the list of dependency that has been removed to users.
     # Users can choose the dependency that they want to analyse.
     # Retuen the list of dependency that has been removed.
 
-    users_input = ask_user_to_choose_dependency(
-        moved_dependencies=moved,
+    user_input = ask_user_to_choose_dependency(
+        # moved_dependencies=moved,
         removed_dependencies=removed,
     )
 
-    if not users_input:
+    if not user_input:
         exit(0)
 
     # 3rd function
@@ -120,17 +118,22 @@ def analyze_project(
         res = get_interval_of_usage_period(
             dependent_org_name=org,
             dependent_repo_name=repo,
-            moved_dependencies=moved,
             removed_dependencies=removed,
             installed_dependencies=installed,
             updated_dependencies=updated,
             dataset_path=root_dataset_path,
             github_token=github_token,
-            users_input=users_input,
+            user_input=user_input,
             update=update,
             detail=detail,
             level_of_logging=level_of_logging
         )
+
+        if res is None:
+            print('{}Cannot find dependency usage of this dependency.{} Please try again with other dependencies.'.format(
+                logging_code.ERROR, logging_code.ENDC
+            ))
+            exit(0)
 
         # 4th funciton
         # Classify the dependency removal scenarios.
@@ -139,8 +142,6 @@ def analyze_project(
         classified_scenarios = []
         for dependency in res:
             dependency_res = removal_scenario_classification(
-                # dependent_org_name=org,
-                # dependent_repo_name=repo,
                 dependency_removal_scenarios=dependency,
                 dataset_path=root_dataset_path,
                 keywords_path=keywords_path,
@@ -150,10 +151,6 @@ def analyze_project(
                 level_of_logging=level_of_logging
             )
 
-            filtered_moved = [scenario for scenario in moved if scenario['name'] == dependency_res['dependency_name']]
-
-            dependency_res['move_dep_to_other_fields'].extend(
-                filtered_moved)
             classified_scenarios.append(dependency_res)
 
         # 5th function (last function)
@@ -163,7 +160,7 @@ def analyze_project(
         # they can choose the dependency name and then the analysis will be continued.
         # The dependency name are provided from 2nd fucntion.
 
-        continue_analyze, users_input = result_and_another_input(
+        continue_analyze, user_input = result_and_another_input(
             proj_org=org,
             proj_repo=repo,
             dataset_path=root_dataset_path,
@@ -171,7 +168,7 @@ def analyze_project(
             results=classified_scenarios,
             moved_dependencies=moved,
             removed_dependencies=removed,
-            previous_input=users_input
+            previous_input=user_input
         )
 
     exit(0)

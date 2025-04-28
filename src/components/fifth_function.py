@@ -15,9 +15,7 @@ def result_and_another_input(
     proj_org: str,
     proj_repo: str,
     dataset_path: Path,
-    result_path: Path,
     results: list[dict],
-    moved_dependencies: list[dict],
     removed_dependencies: list[dict],
     previous_input: list[dict[str]],
 ) -> tuple[bool, Union[list[str], None]]:
@@ -55,50 +53,31 @@ def result_and_another_input(
     if not current_save_path.exists():
         current_save_path.mkdir(parents=True)
 
-    # print(json.dumps(results, indent=4))
-
     for result in results:
-        all_scenarios = 0
         dependency_name = result['dependency_name']
         removed_version = result['version']
-        # print(json.dumps(result, indent=4))
-
-        filtered_scenarios = []
-        for scenario in result['move_dep_to_other_fields']:
-            if scenario['name'] != dependency_name:
-                continue
-            else:
-                filtered_scenarios.append(scenario)
-
-        result['scenarios']['move_dep_to_other_fields'] = filtered_scenarios
-
-        # for scenario in result['scenarios']:
+        
         scenario = result['scenarios']
         if len(scenario) == 0:
             continue
         for group, each_scenario in scenario.items():
-            all_scenarios += len(each_scenario)
 
             current_dependency_save_path = current_save_path.joinpath(f'{dependency_name}/version_{removed_version}')
-            # print(current_dependency_save_path)
             if not current_dependency_save_path.exists():
                 current_dependency_save_path.mkdir(parents=True)
             with open(f'{current_dependency_save_path}/{group}.json', 'w') as file:
                 json.dump(each_scenario, file, indent=4)
 
             readable_group = ''
-            if group == 'move_dep_to_other_fields':
-                readable_group = 'Move dependency to other fields'
-            elif group == 'shrink_library':
-                readable_group = 'Shrink library'
-            elif group == 'remove_bloat_dependency':
-                readable_group = 'Remove bloat dependency'
-            elif group == 'replace_dep_with_builtins':
-                readable_group = 'Replace dependency with built-ins or custom functions'
-            elif group == 'replace_dep_with_another_dep':
-                readable_group = 'Replace dependency with another dependency'
+            if group == 'removal_affected_code':
+                readable_group = 'Dependency Removals with Direct Code Impact'
+            elif group == 'removal_not_affected_code':
+                readable_group = 'Dependency Removals without Direct Code Impact'
             elif group == 'unknown':
                 readable_group = 'Unknown'
+
+            each_scenario_sha = [each_scenario_['commit_sha'] for each_scenario_ in each_scenario]
+            each_scenario_sha = list(set(each_scenario_sha))
 
             if len(each_scenario) > 0:
                 if dependency_name not in reports.keys():
@@ -146,17 +125,6 @@ def result_and_another_input(
         report_string = '\n'.join(report_full)
         file.write(report_string)
 
-    # print(json.dumps(report_string, indent=4))
-
-    first_res = []
-    for group in [moved_dependencies, removed_dependencies]:
-        for dependency in group:
-            if dependency['name'] not in first_res:
-                first_res.append(dependency['name'])
-
-    first_res = sorted(first_res)
-    dependency_completer = WordCompleter(first_res, ignore_case=True, sentence=True)
-
     print()
     print(report_string)
 
@@ -164,6 +132,14 @@ def result_and_another_input(
     print('If you want to continue the analysis with other dependency, please enter the dependency name.')
     print('If you prefer to stop the analysis, please enter \"end\" or \"ctrl + c\".')
     print()
+
+    first_res = []
+    for dependency in removed_dependencies:
+        if dependency['name'] not in first_res:
+            first_res.append(dependency['name'])
+
+    first_res = sorted(first_res)
+    dependency_completer = WordCompleter(first_res, ignore_case=True, sentence=True)
 
     for index, dependency in enumerate(first_res, 1):
         status = ' << {}Analyzed{}'.format(logging_code.SUCCESS, logging_code.ENDC) if dependency in previous_dependency else ''
@@ -175,31 +151,35 @@ def result_and_another_input(
             status
         ))
 
-    try:
-        print('Please enter the dependency name: ')
-        users_input = prompt('> ', completer=dependency_completer)
-    except KeyboardInterrupt:
-        return False, None
-
-    users_input = users_input.strip().split(',')
-    users_input = set(users_input)
-    first_res = set(first_res)
-
-    overlap = users_input & first_res
-
-    while not overlap:
-        if 'end' in users_input:
-            return False, None
-        if 'all' in users_input:
-            return True, first_res
-        print('The dependency that you entered is not in the list of dependencies.')
-        print('Please enter the correct dependency.')
+    while True:
         try:
-            print()
             print('Please enter the dependency name: ')
-            users_input = prompt('> ', completer=dependency_completer)
-            # print(first_res)
+            user_input = prompt('> ', completer=dependency_completer)
+
+            if user_input == 'end':
+                return False, None
+            try:
+                user_input = int(user_input)
+                if user_input > 0 and user_input <= len(first_res):
+                    break
+                else:
+                    print('The index that you entered is not in the list of dependencies.')
+                    print('Please enter the correct index.')
+                    print('Please enter a number between 1 and {}.'.format(len(first_res)))
+            except ValueError:
+                if user_input in first_res:
+                    break
+                else:
+                    print('The dependency that you entered is not in the list of dependencies.')
+                    print('Please enter the correct dependency.')
         except KeyboardInterrupt:
             return False, None
+        
+    target_dependency = first_res[user_input - 1]
+    print('You have selected \"{}{}{}\"'.format(
+        logging_code.WARNING,
+        target_dependency,
+        logging_code.ENDC
+    ))
 
-    return True, users_input
+    return True, target_dependency

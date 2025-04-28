@@ -6,8 +6,7 @@ from typing import Union
 
 from .logging_code import logging_code
 from .requests_git_api import request_api
-from .compare_code_change_by_ast import compare_replaced_code_with_dependency
-from .element_classification import classify_commit_message, classify_python_code, classify_python_code_with_grouping
+from .element_classification import classify_commit_message, classify_python_code_with_grouping
 
 
 def extracttion_of_repalcement_and_removal_code(
@@ -28,7 +27,6 @@ def compare_with_keyword(
     patterns_path: Path,
     js_code: str
 ) -> bool:
-    # patterns_path = dataset_path.joinpath('patterns_and_keywords')
     with open(f'{patterns_path}/javascript_built_in_keywords.json', 'r') as file:
         javascript_built_in_keywords = json.load(file)
 
@@ -79,7 +77,10 @@ def get_file_from_commit(
                 data = json.load(file)
                 return data['deleted_code'], True
             
-    headers = {"Authorization": f"Bearer {github_token}"}
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": "keep-alive",
+    }
 
     if detail:
         print(f'Getting parent commit: {parent_commit_sha} from {org}/{repo} \n by using spare api: {spare_api}')
@@ -120,36 +121,6 @@ def get_file_from_commit(
         return None, False
     
     return target_file, False
-
-# def save_pair_of_code(
-#     org: str,
-#     repo: str,
-#     file_name: str,
-#     removed_dependency_name: str,
-#     current_commit_sha: str,
-#     parent_commit_sha: str,
-#     dataset_path: str,
-#     replaced_code: dict,
-#     deleted_code: dict
-# ) -> None:
-#     save_path = dataset_path.joinpath(
-#         f'04_pairs_of_commit/{org}:{repo}/{removed_dependency_name}')
-#     if not save_path.exists():
-#         save_path.mkdir(parents=True)
-
-#     # Saved file scheme: {commit sha}_{parent commit sha}.json
-#     # saved_files = [file.stem.rsplit('.')[-1] for file in save_path.glob('*_*.json')]
-#     saved_file_name = f'{current_commit_sha}_{parent_commit_sha}'
-#     res = {
-#         'file_name': file_name,
-#         'deleted_code': deleted_code,
-#         'replaced_code': replaced_code
-#     }
-
-#     with open(f'{save_path}/{saved_file_name}.json', 'w') as file:
-#         json.dump(res, file)
-
-#     return
 
 def get_package_json_at_commit_date(
     dataset_path: Path,
@@ -199,8 +170,6 @@ def get_package_json_at_commit_date(
 
 
 def removal_scenario_classification(
-    # dependent_org_name: str,
-    # dependent_repo_name: str,
     dependency_removal_scenarios: dict,
     dataset_path: Path,
     keywords_path: Path,
@@ -226,7 +195,6 @@ def removal_scenario_classification(
     for project_name, scenarios in dependency_removal_scenarios.items():
         dependent_org_name, dependent_repo_name = project_name.split(':')
         commit_description_path = dataset_path.joinpath(f'03_commits_description_since_install_until_remove/{dependent_org_name}:{dependent_repo_name}')
-        # dependency_removal_scenarios = dependency_removal_scenarios[f'{dependent_org_name}:{dependent_repo_name}']
 
         dependency_name = scenarios['user_input']
         dependency_removal_scenario = scenarios['usage_interval_scenarios']
@@ -236,9 +204,7 @@ def removal_scenario_classification(
             'dependency_name': dependency_name,
             'version': removed_dependency_version,
             'scenarios': dict(),
-            'move_dep_to_other_fields': [],
         }
-        # event_type = dependency_removal_scenario['event_type'] # ? moved or removed
 
         scenario_report = [
             f'{logging_code.INFO}Project\'s name{logging_code.ENDC} : {dependent_org_name}:{dependent_repo_name}',
@@ -265,23 +231,17 @@ def removal_scenario_classification(
             if since_date <= file_date <= until_date:
                 commits_description.append(file)
         
-        move_dep_to_other_fields = []
-        remove_bloat_dependency = []
-        shrink_library = []
-        replace_dep_with_builtins = []
-        replace_dep_with_another_dep = []
         unknown = []
+        removal_affected_code = []
+        removal_not_affected_code = []
 
-        # pairs_of_replaced_and_removal_code = []
         for commit_description_path in commits_description:
-            # print('commit_description_path:', commit_description_path)
             with open(commit_description_path, 'r') as f:
                 commit_description = json.load(f)
             
             # * commit information
             commit_sha = commit_description['sha']
             commit_date = commit_description['commit']['committer']['date']
-            # print('commit_sha before function:', commit_sha)
 
             package_json_at_commit_date, package_json_before_commit_date = get_package_json_at_commit_date(
                 dataset_path=dataset_path,
@@ -309,6 +269,26 @@ def removal_scenario_classification(
             found_package_json = False
             got_result = False
             for patch_file in patch_files:
+                res = {
+                    'removed_dependency_name': '',
+                    'file_name': '',
+                    'url': '',
+                    'commit_sha': '',
+                    'commit_message': {
+                        'raw': '',
+                        'preprocess': [],
+                        'pattern': [],
+                    },
+                    'replacement_code': {
+                        'raw': '',
+                        'import_classified': [],
+                    },
+                    'deleted_code': {
+                        'raw': '',
+                        'import_classified': [],
+                    },
+                }
+                
                 if 'patch' not in patch_file.keys():
                     continue
 
@@ -368,15 +348,6 @@ def removal_scenario_classification(
                 replaced_raw_snippet, deleted_raw_snippet = extracttion_of_repalcement_and_removal_code(patch)
                 replaced_import_classified = classify_python_code_with_grouping(replaced_raw_snippet)
                 deleted_import_classified = classify_python_code_with_grouping(deleted_raw_snippet)
-                replaced_classified = classify_python_code(replaced_raw_snippet)
-                deleted_classified = classify_python_code(deleted_raw_snippet)
-
-                replaced_classified_lines = replaced_classified['classified_lines']
-                # replaced_comment = replaced_classified['comment']
-                # replaced_code = replaced_classified['code_without_comment']
-                deleted_classified_lines = deleted_classified['classified_lines']
-                # deleted_comment = deleted_classified['comment']
-                # deleted_code = deleted_classified['code_without_comment']
 
                 # ? Detect removing dependency from commit message
                 all_removed_commit_message = []
@@ -408,26 +379,17 @@ def removal_scenario_classification(
                 found_dependency_usage_in_replaced = False
                 found_dependency_usage_in_replaced = any(dependency_name in line for line in replaced_raw)
 
-                res = {
-                    # 'removed_dependency_name': dependency_name,
-                    'file_name': file_name,
-                    'url': commit_url,
-                    'commit_message': {
-                        'raw': commit_message,
-                        'preprocess': preprocess_commit_message,
-                        'pattern': commit_message_pattern,
-                    },
-                    'replacement_code': {
-                        'raw': replaced_raw_snippet,
-                        'import_classified': replaced_import_classified,
-                        # 'all_classified': replaced_classified_lines,
-                    },
-                    'deleted_code': {
-                        'raw': deleted_raw_snippet,
-                        'import_classified': deleted_import_classified,
-                        # 'all_classified': deleted_classified_lines,
-                    },
-                }
+                res['removed_dependency_name'] = dependency_name
+                res['file_name'] = file_name
+                res['url'] = commit_url
+                res['commit_sha'] = commit_sha
+                res['commit_message']['raw'] = commit_message
+                res['commit_message']['preprocess'] = preprocess_commit_message
+                res['commit_message']['pattern'] = commit_message_pattern
+                res['replacement_code']['raw'] = replaced_raw_snippet
+                res['replacement_code']['import_classified'] = replaced_import_classified
+                res['deleted_code']['raw'] = deleted_raw_snippet
+                res['deleted_code']['import_classified'] = deleted_import_classified
 
                 found_dependency_in_removed_code = found_dependency_import_in_deleted or found_dependency_usage_in_deleted
                 found_dependency_in_replaced_code = found_dependency_import_in_replaced or found_dependency_usage_in_replaced
@@ -440,14 +402,14 @@ def removal_scenario_classification(
                     print()
 
                 if detail and level_of_logging > 1:
-                    print('{}found_dependency_import_in_replaced:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_import_in_replaced))
-                    print('{}found_dependency_import_in_deleted:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_import_in_deleted))
-                    print('{}found_dependency_in_removed_code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_in_removed_code))
-                    print('{}found_dependency_in_replaced_code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_in_replaced_code))
-                    print('{}dependency_import_in_deleted_names:{} {}'.format(logging_code.INFO, logging_code.ENDC, dependency_import_in_deleted_names))
-                    print('{}dependency_import_in_replaced_names:{} {}'.format(logging_code.INFO, logging_code.ENDC, dependency_import_in_replaced_names))
-                    print('{}deleted_dependencies:{} {}'.format(logging_code.INFO, logging_code.ENDC, deleted_dependencies))
-                    print('{}replaced_dependencies:{} {}'.format(logging_code.INFO, logging_code.ENDC, replaced_dependencies))
+                    print('{}Dependency import in replaced code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_import_in_replaced))
+                    print('{}Dependency import in removed code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_import_in_deleted))
+                    print('{}Dependency name in removed code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_in_removed_code))
+                    print('{}Dependency name in replaced code:{} {}'.format(logging_code.INFO, logging_code.ENDC, found_dependency_in_replaced_code))
+                    print('{}Dependencies import in deleted:{} {}'.format(logging_code.INFO, logging_code.ENDC, dependency_import_in_deleted_names))
+                    print('{}Dependencies import in replaced:{} {}'.format(logging_code.INFO, logging_code.ENDC, dependency_import_in_replaced_names))
+                    print('{}Deleted dependencies:{} {}'.format(logging_code.INFO, logging_code.ENDC, deleted_dependencies))
+                    print('{}Replaced dependencies:{} {}'.format(logging_code.INFO, logging_code.ENDC, replaced_dependencies))
                     if 'dependencies' in package_json_at_commit_date.keys():
                         print('{}dependencies in package_json_at_commit_date:{} {}'.format(logging_code.INFO, logging_code.ENDC, json.dumps(list(package_json_at_commit_date['dependencies'].keys()), indent=4)))
                     else:
@@ -506,51 +468,22 @@ def removal_scenario_classification(
                     continue
 
                 if dependency_name in dependency_list_at_commit_date and dependency_name in other_fields_dependency_in_package_json:
-                    move_dep_to_other_fields.append(res)
                     continue
 
                 # ? Case replace the removed dependency
-                contain_keyword_in_replaced_code = compare_with_keyword(keywords_path, replaced_raw_snippet)
-
                 got_result = True
                 if replaced_dependencies:
-                    replace_dep_with_another_dep.append(res)
+                    removal_affected_code.append(res)
                     continue
 
                 else:
                     # ? Case only remove the dependency
                     if not found_dependency_usage_on_removed_code:
-                        remove_bloat_dependency.append(res)
+                        removal_not_affected_code.append(res)
                         continue
 
-                    elif contain_keyword_in_replaced_code:
-                        replace_dep_with_builtins.append(res)
-                        continue
-
-                    elif not contain_keyword_in_replaced_code:
-                        # print(commit_url)
-                        # print(file_name)
-                        if change_status == 'removed':
-                            shrink_library.append(res)
-                            continue
-
-                        similarity = compare_replaced_code_with_dependency(
-                            dataset_path=dataset_path,
-                            dependency_name=dependency_name,
-                            version=removed_dependency_version,
-                            deleted_code_snippet=deleted_raw_snippet,
-                            deleted_source_code=deleted_raw,
-                            replaced_code_snippet=replaced_raw_snippet,
-                            replaced_source_code=replaced_raw,
-                            update=update,
-                            detail=detail
-                        )
-
-                        if similarity:
-                            replace_dep_with_builtins.append(res)
-                        else:
-                            shrink_library.append(res)
-                        continue
+                    elif found_dependency_usage_on_removed_code:
+                        removal_affected_code.append(res)
 
                     else:
                         unknown.append(res)
@@ -567,9 +500,10 @@ def removal_scenario_classification(
 
                 if found_package_json and not got_result:
                     res = {
-                        # 'removed_dependency_name': dependency_name,
+                        'removed_dependency_name': dependency_name,
                         'file_name': 'package.json',
                         'url': commit_url,
+                        'commit_sha': commit_sha,
                         'commit_message': {
                             'raw': commit_message,
                             'preprocess': preprocess_commit_message,
@@ -581,14 +515,16 @@ def removal_scenario_classification(
                         unknown.append(res)
                         continue
 
-                    # print('commit_sha before function:', commit_sha)
-
                     if detail and level_of_logging > 0:
                         print('package_json_at_commit_date:', json.dumps(package_json_at_commit_date, indent=4))
                         print('package_json_before_commit_date:', json.dumps(package_json_before_commit_date, indent=4))
 
                     if package_json_at_commit_date is None:
                         unknown.append(res)
+                        continue
+
+                    # ? Case not a dependnecy removal
+                    if package_json_at_commit_date is not None and package_json_before_commit_date is None:
                         continue
 
                     # ? Case no dependency changes in the package.json
@@ -605,31 +541,23 @@ def removal_scenario_classification(
                             other_fields_deps.extend(package_json_at_commit_date[key])
 
                     if dependency_name in package_json_before_commit_date.get('dependencies', {}) and dependency_name in other_fields_deps:
-                        move_dep_to_other_fields.append(res)
+                        removal_not_affected_code.append(res)
                         continue
 
                     package_json_patch = next((p for p in commit_description['files'] if p['filename'] == 'package.json'), None)
                     if package_json_patch:
                         replaced, deleted = extracttion_of_repalcement_and_removal_code(package_json_patch['patch'])
                         if dependency_name in ''.join(deleted) and dependency_name not in ''.join(replaced):
-                            remove_bloat_dependency.append(res)
+                            removal_not_affected_code.append(res)
 
         # ? prevent detect as unknown if found other removed categories in a same dependency usage.
-        if any([move_dep_to_other_fields, remove_bloat_dependency, shrink_library, 
-            replace_dep_with_builtins, replace_dep_with_another_dep]):
+        if any([removal_affected_code, removal_not_affected_code]):
             unknown = []
 
         classified_res['scenarios'] = {
-            # 'move_dep_to_other_fields': move_dep_to_other_fields,
-            'shrink_library': shrink_library,
-            'remove_bloat_dependency': remove_bloat_dependency,
-            'replace_dep_with_builtins': replace_dep_with_builtins,
-            'replace_dep_with_another_dep': replace_dep_with_another_dep,
+            'removal_affected_code': removal_affected_code,
+            'removal_not_affected_code': removal_not_affected_code,
             'unknown': unknown
         }
-
-        classified_res['move_dep_to_other_fields'] = move_dep_to_other_fields
-
-    # print(json.dumps(classified_res, indent=4))
 
     return classified_res

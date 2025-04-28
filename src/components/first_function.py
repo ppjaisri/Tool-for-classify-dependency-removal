@@ -21,7 +21,10 @@ def get_package_json_history(
     saved_files = save_path.glob('*.json')
     saved_files = [str(file) for file in saved_files]
 
-    headers = {"Authorization": f"Bearer {github_token}"}
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": "keep-alive",
+    }
 
     page = 1
     no_download = True
@@ -43,8 +46,6 @@ def get_package_json_history(
         for commit in res:
             try:
                 commit_date = commit['commit']['author']['date']
-                # commit_date = datetime.strptime(commit_date, '%Y-%m-%dT%H:%M:%SZ')
-                # commit_date = commit_date.strftime('%Y-%m-%d')
             except:
                 try:
                     print('Cannot get date from commit[\'commit\'][\'author\']')
@@ -101,7 +102,8 @@ def get_package_json_history(
 
             no_download = False
 
-        # print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+        if detail:
+            print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
         page += 1
         first_attemp = False
 

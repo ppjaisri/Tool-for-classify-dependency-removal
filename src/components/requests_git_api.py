@@ -86,18 +86,23 @@ def log_error_limit_reached(
 def request_api(
     api: str,
     package_name: str,  # * For logging purpose
-    headers: Union[dict, str, None] = None,
+    headers: Union[dict, None] = None,
     spare_api: Union[str, None] = None,
     debug: bool = False,
 ) -> tuple[Union[dict[str, str], bool], int]:
+    # if type(headers) is str:
+    #     headers = {"Authorization": f"Bearer {headers}"}
     session = requests.Session()
-
-    if type(headers) is str:
-        headers = {"Authorization": f"Bearer {headers}"}
-        
     session.headers.update(headers)
 
-    res = session.get(api)
+    try:
+        res = session.get(api)
+    except requests.exceptions.RequestException as e:
+        session.close()
+        session = requests.Session()
+        session.headers.update(headers)
+
+        res = session.get(api)
     # res = requests.get(api, headers=headers)
 
     if 'x-ratelimit-remaining' in res.headers.keys():
@@ -130,7 +135,14 @@ def request_api(
                       logging_code.WARNING}{package_name}{logging_code.ENDC}')
                 return None, requests_left
 
-            res = session.get(spare_api)
+            try:
+                res = session.get(api)
+            except requests.exceptions.RequestException as e:
+                session.close()
+                session = requests.Session()
+                session.headers.update(headers)
+
+                res = session.get(api)
 
             match res.status_code:
                 case 403 | 429:
@@ -165,7 +177,14 @@ def request_api(
                 package_name, api, res.status_code, wait_time)
 
             try:
-                res = session.get(api)
+                try:
+                    res = session.get(api)
+                except requests.exceptions.RequestException as e:
+                    session.close()
+                    session = requests.Session()
+                    session.headers.update(headers)
+
+                    res = session.get(api)
                 res = res.json()
             except requests.exceptions.RequestException as e:
                 print(f'{logging_code.ERROR}ERROR{logging_code.ENDC}, with {logging_code.WARNING}{e}{logging_code.ENDC}')

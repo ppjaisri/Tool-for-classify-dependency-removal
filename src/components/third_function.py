@@ -11,7 +11,6 @@ from ..interfaces import User_Input
 
 
 def get_commit_history(
-    # dependent_name: str,
     org: str,
     repo: str,
 	github_token: str,
@@ -23,7 +22,10 @@ def get_commit_history(
     detail: bool = False,
     level_of_logging: int = 0,
 ) -> int:
-    headers = {"Authorization": f"Bearer {github_token}"}
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": "keep-alive",
+    }
 
     page = 1
 
@@ -36,22 +38,13 @@ def get_commit_history(
     request_left = None
     while True:
         if isinstance(since, str):
-            # try:
-            #     since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
-            # except ValueError:
                 since = datetime.strptime(since, '%Y-%m-%dT%H:%M:%SZ')
                 
         if isinstance(until, str):
-            # try:
-            #     until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
-            # except ValueError:
                 until = datetime.strptime(until, '%Y-%m-%dT%H:%M:%SZ')
 
         if since > until:
             since, until = until, since
-
-        # since = since.strftime('%Y-%m-%dT%H:%M:%SZ')
-        # until = until.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         since_str = since.replace(hour=0, minute=0, second=0).strftime(
             '%Y-%m-%dT%H:%M:%SZ')
@@ -59,8 +52,6 @@ def get_commit_history(
             '%Y-%m-%dT%H:%M:%SZ')
 
         commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100&page={page}'
-        # print(commit_api)
-        # break
 
         file_name = f'{since_str}_to_{until_str}_commits_page_{page}.json'
         need_to_delete_old_file = {'delete': False, 'file': None}
@@ -94,8 +85,9 @@ def get_commit_history(
 
         res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
         if res is None or res == [] or len(res) == 0:
-            # print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
-            #       logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
+            if detail:
+                print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
+                      logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
             break
 
         if not save_path.exists():
@@ -143,15 +135,18 @@ def get_commit_description(
 
     if commit_sha in downloaded_files:
         if not update:
-            if detail:
+            if detail and level_of_logging > 2:
                 print(f'{logging_code.CYAN}Found{logging_code.ENDC} {logging_code.WARNING}{commit_sha}{logging_code.ENDC} the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit')
         return
 
-    headers = {"Authorization": f"Bearer {github_token}"}
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": "keep-alive",
+    }
 
     commit_api = f'https://api.github.com/repos/{org}/{repo}/commits/{commit_sha}'
     
-    if detail:
+    if detail and level_of_logging > 2:
         print(f'    {logging_code.INFO}Getting{logging_code.ENDC} commit description from {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
 
     res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
@@ -179,8 +174,6 @@ def commit_description(
     commits_history_path: Path,
     save_path: Path,
     github_token: str,
-    # since: str,
-    # until: str,
     update: bool = False,
     detail: bool = False,
     level_of_logging: int = 0,
@@ -212,7 +205,7 @@ def commit_description(
                 level_of_logging=level_of_logging,
             )
 
-            if detail:
+            if detail and level_of_logging > 2:
                 print(f'    {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
 
         print(f'{logging_code.SUCCESS}Done{logging_code.ENDC} getting commits description history of {
@@ -227,7 +220,6 @@ def extract_usage_periods(
     project_name: str,
     installed: list[dict],
     removed: list[dict],
-    moved: list[dict],
     updated: list[dict],
 ) -> list[dict]:
     """Extracts the usage period of dependencies, including removal, moves, and updates."""
@@ -300,17 +292,16 @@ def extract_usage_periods(
 def get_interval_of_usage_period(
     dependent_org_name: str,
     dependent_repo_name: str,
-    moved_dependencies: dict,
     removed_dependencies: dict,
     installed_dependencies: dict,
     updated_dependencies: dict,
     dataset_path: Path,
     github_token: str,
-    users_input: Union[set, list],
+    user_input: Union[set, list],
     update: bool = False,
     detail: bool = False,
     level_of_logging: int = 0,
-) -> list[dict]:
+) -> list[dict] | None:
     """
         This is the third function.
         Purpose: Get the list of commit within usage period that has been removed.
@@ -320,17 +311,11 @@ def get_interval_of_usage_period(
     """
 
     result = list()
-    if type(users_input) == str:
-        users_input = [users_input]
-
-    elif type(users_input) == set:
-        users_input = list(users_input)
 
     usage_periods = extract_usage_periods(
         project_name=f"{dependent_org_name}:{dependent_repo_name}",
         installed=installed_dependencies,
         removed=removed_dependencies,
-        moved=moved_dependencies,
         updated=updated_dependencies
     )
 
@@ -338,52 +323,50 @@ def get_interval_of_usage_period(
         print(json.dumps(usage_periods, indent=4))
 
     if detail and level_of_logging > 1:
-        print(f'Moved dependencies: {json.dumps(moved_dependencies, indent=4)}')
         print(f'Removed dependencies: {json.dumps(removed_dependencies, indent=4)}')
         print(f'Installed dependencies: {json.dumps(installed_dependencies, indent=4)}')
         print(f'Updated dependencies: {json.dumps(updated_dependencies, indent=4)}')
 
-    for user_input in users_input:
-        if user_input not in usage_periods:
-            if detail:
-                print(f"Skipping {user_input}, as no complete usage period found.")
-            continue
+    if user_input not in usage_periods:
+        if detail:
+            print(f"Skipping {user_input}, as no complete usage period found.")
+        return None
 
-        for usage_interval in usage_periods[user_input]:
-            commits_history_path = dataset_path.joinpath("02_commits_since_install_until_remove")
-            commits_description_history_path = dataset_path.joinpath("03_commits_description_since_install_until_remove")
+    for usage_interval in usage_periods[user_input]:
+        commits_history_path = dataset_path.joinpath("02_commits_since_install_until_remove")
+        commits_description_history_path = dataset_path.joinpath("03_commits_description_since_install_until_remove")
 
 
-            get_commit_history(
-                org=dependent_org_name,
-                repo=dependent_repo_name,
-                github_token=github_token,
-                save_path=commits_history_path,
-                since=usage_interval['installed_date'],
-                until=usage_interval['removed_date'] if 'removed_date' in usage_interval else usage_interval['moved_date'],
-                update=update,
-                detail=detail,
-                level_of_logging=level_of_logging
-            )
+        get_commit_history(
+            org=dependent_org_name,
+            repo=dependent_repo_name,
+            github_token=github_token,
+            save_path=commits_history_path,
+            since=usage_interval['installed_date'],
+            until=usage_interval['removed_date'],
+            update=update,
+            detail=detail,
+            level_of_logging=level_of_logging
+        )
 
-            commit_description(
-                org=dependent_org_name,
-                repo=dependent_repo_name,
-                commits_history_path=commits_history_path,
-                save_path=commits_description_history_path,
-                github_token=github_token,
-                update=update,
-                detail=detail,
-                level_of_logging=level_of_logging
-            )
+        commit_description(
+            org=dependent_org_name,
+            repo=dependent_repo_name,
+            commits_history_path=commits_history_path,
+            save_path=commits_description_history_path,
+            github_token=github_token,
+            update=update,
+            detail=detail,
+            level_of_logging=level_of_logging
+        )
 
-            res = {
-                f'{dependent_org_name}:{dependent_repo_name}': {
-                    'user_input': user_input,
-                    'usage_interval_scenarios': usage_interval,
-                }
+        res = {
+            f'{dependent_org_name}:{dependent_repo_name}': {
+                'user_input': user_input,
+                'usage_interval_scenarios': usage_interval,
             }
+        }
 
-            result.append(res)
+        result.append(res)
 
     return result
