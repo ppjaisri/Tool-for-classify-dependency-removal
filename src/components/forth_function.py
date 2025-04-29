@@ -103,7 +103,13 @@ def get_file_from_commit(
                 logging_code.ERROR, logging_code.ENDC))
         return None, False
     
-    target_file_url = res['download_url']
+    try:
+        target_file_url = res['download_url']
+    except KeyError:
+        print(f'No URL for {logging_code.WARNING}{target_file_path}{logging_code.ENDC}')
+        print(json.dumps(res, indent=4))
+        return None, False
+
     target_file, request_left = request_api(
         api=target_file_url,
         package_name=f'{org}/{repo}',
