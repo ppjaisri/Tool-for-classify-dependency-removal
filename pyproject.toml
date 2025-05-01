@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "tool-for-classify-dependency-removal"
 version = "0.1.0"
-description = ""
+description = "This tool is a tool for classifying dependency removal in JavaScript projects. The results of the classification are dependency removal with and without direct impact code changes."
 authors = ["ppjaisri <ppjaisri@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -11,23 +11,16 @@ packages = [{include = "src"}]
 python = "^3.12"
 poetry = "^2.0.0"
 stdlib-list = "^0.11.0"
-esprima = "^4.0.1"
 prompt-toolkit = "^3.0.51"
 
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 jupyter = "^1.1.1"
-tornado = "^6.4.2"
 matplotlib = "^3.10.0"
 numpy = "^2.2.3"
 graphviz = "^0.20.3"
 
-
-[tool.poetry.group.tokenizer.dependencies]
-tree-sitter = "^0.24.0"
-tree-sitter-languages = "^1.10.2"
-tree-sitter-javascript = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core"]
