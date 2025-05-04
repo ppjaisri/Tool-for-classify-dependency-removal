@@ -164,9 +164,7 @@ def analyze_project(
             proj_org=org,
             proj_repo=repo,
             dataset_path=root_dataset_path,
-            result_path=root_dataset_path,
             results=classified_scenarios,
-            moved_dependencies=moved,
             removed_dependencies=removed,
             previous_input=user_input
         )

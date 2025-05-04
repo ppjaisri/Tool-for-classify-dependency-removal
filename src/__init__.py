@@ -3,7 +3,7 @@ from .components import detect_change_of_dependency_field, detect_moving_dep_to_
 
 # Classification
 from .components.element_classification import classify_commit_message, classify_python_code, classify_python_code_with_grouping
-from .components.compare_code_change_by_ast import compare_replaced_code_with_dependency
+# from .components.compare_code_change_by_ast import compare_replaced_code_with_dependency
 
 # Interface files
 from .interfaces import result
@@ -19,7 +19,7 @@ from .components.third_function import get_interval_of_usage_period
 from .components.forth_function import removal_scenario_classification
 
 # Code clone detection
-from .components.code_clone_detector import CodeCloneDetector
+# from .components.code_clone_detector import CodeCloneDetector
 
 __version__ = '0.5.0'
 __all__ = [
@@ -28,7 +28,7 @@ __all__ = [
     'classify_commit_message',
     'classify_python_code',
     'classify_python_code_with_grouping',
-    'compare_replaced_code_with_dependency',
+    # 'compare_replaced_code_with_dependency',
     'result',
     'logging_code',
     'request_api',
@@ -37,5 +37,5 @@ __all__ = [
     'ask_user_to_choose_dependency',
     'get_interval_of_usage_period',
     'removal_scenario_classification',
-    'CodeCloneDetector',
+    # 'CodeCloneDetector',
 ]
