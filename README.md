@@ -1,4 +1,4 @@
-# Tool for classifying dependency remvoal scenaio
+# An Automate Tool for classifying dependency remvoal scenaio in the NPM Ecosytem
 
 The purpose of this tool is to classify dependency removal scenarios on the NPM ecosystem.
 
