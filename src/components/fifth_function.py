@@ -84,25 +84,35 @@ def result_and_another_input(
             # print(current_dependency_save_path)
             if not current_dependency_save_path.exists():
                 current_dependency_save_path.mkdir(parents=True)
-            with open(f'{current_dependency_save_path}/{group}.json', 'w') as file:
-                json.dump(each_scenario, file, indent=4)
+            if each_scenario == [] or len(each_scenario) == 0:
+                continue
 
             readable_group = ''
-            if group == 'move_dep_to_other_fields':
-                readable_group = 'Move dependency to other fields'
-            elif group == 'shrink_library':
-                readable_group = 'Shrink library'
-            elif group == 'remove_bloat_dependency':
-                readable_group = 'Remove bloat dependency'
-            elif group == 'replace_dep_with_builtins':
-                readable_group = 'Replace dependency with built-ins or custom functions'
-            elif group == 'replace_dep_with_another_dep':
-                readable_group = 'Replace dependency with another dependency'
+            if group == 'removal_affected_code':
+                readable_group = 'Dependency Removals with Direct Code Impact'
+            elif group == 'removal_not_affected_code':
+                readable_group = 'Dependency Removals without Direct Code Impact'
+            elif group == 'not_related':
+                readable_group = 'Not related to dependency removal'
+            # if group == 'move_dep_to_other_fields':
+            #     readable_group = 'Move dependency to other fields'
+            # elif group == 'shrink_library':
+            #     readable_group = 'Shrink library'
+            # elif group == 'remove_bloat_dependency':
+            #     readable_group = 'Remove bloat dependency'
+            # elif group == 'replace_dep_with_builtins':
+            #     readable_group = 'Replace dependency with built-ins or custom functions'
+            # elif group == 'replace_dep_with_another_dep':
+            #     readable_group = 'Replace dependency with another dependency'
             elif group == 'unknown':
                 readable_group = 'Unknown'
+            with open(f'{current_dependency_save_path}/{readable_group}.json', 'w') as file:
+                json.dump(each_scenario, file, indent=4)
 
             each_scenario_sha = [each_scenario_['commit_sha'] for each_scenario_ in each_scenario]
             each_scenario_sha = list(set(each_scenario_sha))
+
+            print(readable_group)
 
             if len(each_scenario) > 0:
                 if dependency_name not in reports.keys():
@@ -137,6 +147,7 @@ def result_and_another_input(
         report_full = []
         report_full.append('Results of the analysis')
 
+        print(json.dumps(reports, indent=4))
         for dependency_name_in_report, report in reports.items():
             report_full.append(dependency_name_in_report)
             for version, report_description in report.items():
@@ -144,7 +155,7 @@ def result_and_another_input(
                 for group, amount in report_description['scenarios'].items():
                     report_full.append(f'    - {group}: found {amount} times. {report_description['commit_sha']}')
                 report_full.append('')
-            report_full.append('#' * 50)
+            # report_full.append('#' * 50)
 
         report_full.append('')
         report_full.append(f'The full report and classified commits are saved at')
@@ -155,7 +166,7 @@ def result_and_another_input(
 
     # print(json.dumps(report_string, indent=4))
 
-    print('-' * 50)
+    # print('-' * 50)
     print()
     print(report_string)
 

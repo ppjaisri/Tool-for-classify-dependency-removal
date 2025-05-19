@@ -16,11 +16,12 @@ from src.components.fifth_function import result_and_another_input
 
 def analyze_project(
     link_to_project_repository: str,
+    target_dependency: str = None, # ! Just for automate testing
     update: bool = False,
     detail: bool = False,
     level_of_logging: int = 0,
     config_file: str = None,
-) -> None:
+) -> tuple[list[dict], str]:
     if config_file:
         try:
             config_file_path = Path(config_file)
@@ -87,38 +88,46 @@ def analyze_project(
                 print('{}The link is unusable.{} Please check the link and try again.'.format(
                     logging_code.ERROR, logging_code.ENDC
                 ))
-                exit(0)
+                # exit(0)
+                return None
 
             else:
                 print('{}The project has no dependency removal.{}'.format(
                     logging_code.SUCCESS, logging_code.ENDC
                 ))
-                exit(0)
+                # exit(0)
+                return None
 
         # 2nd function
         # Show the list of dependency that has been removed to users.
         # Users can choose the dependency that they want to analyse.
         # Retuen the list of dependency that has been removed.
 
-        users_input = ask_user_to_choose_dependency(
-            moved_dependencies=moved,
-            removed_dependencies=removed,
-        )
+        # ! Please uncomment if using as an application.
+        # users_input = ask_user_to_choose_dependency(
+        #     moved_dependencies=moved,
+        #     removed_dependencies=removed,
+        # )
 
-        if not users_input:
-            exit(0)
+        # ! Just for automate testing. if using as an application, please comment it.
+        users_input = set(i.strip() for i in target_dependency.split(','))
+        if list(users_input)[0] in [i['name'] for i in moved]:
+            return 'moved'
 
-        # 3rd function
-        # Get the list of commit within usage period that has been removed.
-        # Download all commits and then select only .js filts.
+        # if not users_input:
+        #     exit(0)
 
-        # Users will assign the value into Continue_analyze after the analysis is finished.
-        # If users want to continue the analysis with other dependency, the value will be True.
-        # If users want to stop the analysis, the value will be False.
-        # The initial value is True for start the loop.
         continue_analyze = True
-
+        
         while continue_analyze:
+            # 3rd function
+            # Get the list of commit within usage period that has been removed.
+            # Download all commits and then select only .js filts.
+
+            # Users will assign the value into Continue_analyze after the analysis is finished.
+            # If users want to continue the analysis with other dependency, the value will be True.
+            # If users want to stop the analysis, the value will be False.
+            # The initial value is True for start the loop.
             # ! Now support only a single dependency query.
             res = get_interval_of_usage_period(
                 dependent_org_name=org,
@@ -148,7 +157,7 @@ def analyze_project(
                     # dependent_org_name=org,
                     # dependent_repo_name=repo,
                     dependency_removal_scenarios=dependency,
-                    filtered_moved=filtered_moved,
+                    # filtered_moved=filtered_moved,
                     dataset_path=root_dataset_path,
                     keywords_path=keywords_path,
                     github_token=github_token,
@@ -157,9 +166,9 @@ def analyze_project(
                     level_of_logging=level_of_logging
                 )
 
-                # dependency_res['move_dep_to_other_fields'].extend(
-                #     filtered_moved)
                 classified_scenarios.append(dependency_res)
+
+            # print(json.dumps(classified_scenarios, indent=4))
 
             # 5th function (last function)
             # Report the result of classification to users.
@@ -167,7 +176,6 @@ def analyze_project(
             # If users want to continue the analysis with other dependency
             # they can choose the dependency name and then the analysis will be continued.
             # The dependency name are provided from 2nd fucntion.
-            # print(json.dumps(classified_scenarios, indent=4))
 
             continue_analyze, users_input = result_and_another_input(
                 proj_org=org,
@@ -179,17 +187,19 @@ def analyze_project(
                 removed_dependencies=removed,
                 previous_input=users_input
             )
+            break
     except Exception as e:
         print('{}Error: {}{}'.format(logging_code.ERROR, e, logging_code.ENDC))
         print('{}Traceback:{}'.format(logging_code.ERROR, logging_code.ENDC))
         print(traceback.print_exc())
         exit(-1)
 
-    # print(f'exit code: {sys.exit(0)}')
-    exit(0)
-    # sys.exit(1000)
+    #  exit(0)
+    return classified_scenarios
 
-def main() -> None:
+def main(
+    args: list[str] = None,
+) -> dict[str, str]:
     # Parse the arguments
     parser = argparse.ArgumentParser(
         description='''
@@ -210,6 +220,12 @@ def main() -> None:
         'link_to_project_repository',
         type=str,
         help='The link to the project repository to analyze.'
+    )
+
+    parser.add_argument(
+        '--dependency', '-D',
+        type=str,
+        help='The name of the dependency to analyze.'
     )
 
     # Argument for update
@@ -235,16 +251,20 @@ def main() -> None:
         help='The path to the config file.'
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=args)
+    result = None
 
     if args.analyze:
-        analyze_project(
+        result = analyze_project(
             args.link_to_project_repository,
+            target_dependency=args.dependency, # ! Just for automate testing
             update=True if args.update else False,
             detail=True if args.detail else False,
             level_of_logging=args.detail if args.detail else 0,
             config_file=args.config
         )
+
+    return result
 
 
 if __name__ == '__main__':

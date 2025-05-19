@@ -42,16 +42,16 @@ def get_package_json_history(
 
         for commit in res:
             try:
-                commit_date = commit['commit']['author']['date']
+                commit_date = commit['commit']['committer']['date']
                 # commit_date = datetime.strptime(commit_date, '%Y-%m-%dT%H:%M:%SZ')
                 # commit_date = commit_date.strftime('%Y-%m-%d')
             except:
                 try:
-                    print('Cannot get date from commit[\'commit\'][\'author\']')
-                    print(json.dumps(commit['commit']['author']))
+                    print('Cannot get date from commit[\'commit\'][\'committer\']')
+                    print(json.dumps(commit['commit']['committer']))
                 except:
                     try:
-                        print('Cannot get author from commit[\'commit\']')
+                        print('Cannot get committer from commit[\'commit\']')
                         print(json.dumps(commit['commit']))
                     except:
                         print('Cannot get commit from commit')
@@ -94,10 +94,11 @@ def get_package_json_history(
             if content_res is None:
                 break
 
-            content_res, is_broken_json = detect_json_and_clean_and_fix_json(content_res)
+            content_res, is_broken_json = detect_json_and_clean_and_fix_json(content_res, api)
 
-            with open(save_file_name, 'w') as file:
-                file.write(json.dumps(content_res, indent=4))
+            if not is_broken_json:
+                with open(save_file_name, 'w') as file:
+                    file.write(json.dumps(content_res, indent=4))
 
             no_download = False
 
@@ -165,7 +166,12 @@ def history_of_package_json(
         print(f'{logging_code.SUCCESS}Done{logging_code.ENDC} getting history of package.json of {
             logging_code.WARNING}{org}:{repo}{logging_code.ENDC}\n')
     
-    res = detect_moving_dependency_to_other_fields(package_json_history_path)
+    try:
+        res = detect_moving_dependency_to_other_fields(package_json_history_path)
+    except Exception as e:
+        print(f'{logging_code.ERROR}Error{logging_code.ENDC} when getting history of package.json of {org}:{repo}')
+        print(f'{logging_code.ERROR}Error{logging_code.ENDC}: {e}')
+        return None, None, None, None
 
     if level_of_logging > 1:
         print(json.dumps(res, indent=4))

@@ -20,6 +20,7 @@ from .components.forth_function import removal_scenario_classification
 
 # Code clone detection
 from .components.code_clone_detector import CodeCloneDetector
+from .main import main
 
 __version__ = '0.5.0'
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     'get_interval_of_usage_period',
     'removal_scenario_classification',
     'CodeCloneDetector',
+    'main'
 ]

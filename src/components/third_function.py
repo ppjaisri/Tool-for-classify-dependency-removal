@@ -2,7 +2,8 @@ import json
 
 from pathlib import Path
 from typing import Union
-from datetime import datetime
+from datetime import datetime, timedelta
+
 from collections import defaultdict
 
 from .requests_git_api import request_api
@@ -22,8 +23,11 @@ def get_commit_history(
 	spare_api: Union[str, None] = None,
     detail: bool = False,
     level_of_logging: int = 0,
-) -> int:
-    headers = {"Authorization": f"Bearer {github_token}"}
+) -> tuple[int | None, int]:
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": 'keep-alive',
+    }
 
     page = 1
 
@@ -58,72 +62,89 @@ def get_commit_history(
     until_str = until.replace(hour=23, minute=59, second=59).strftime(
         '%Y-%m-%dT%H:%M:%SZ')
 
-    commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100&page={page}'
-    commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100'
-    # print(commit_api)
-    # break
+    per_page = 100
+    # ? Set the maximum sample commit to latest 385 commits
+    while page <= 4:
+        if page == 4:
+            per_page = 85
+        commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page={per_page}&page={page}'
 
-    file_name = f'{since_str}_to_{until_str}_commits_page_{page}.json'
-    need_to_delete_old_file = {'delete': False, 'file': None}
-    if saved_files is not None:
-        if file_name in saved_files:
-            if not update:
-                if detail:
-                    print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
-                        logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
-                return None
-            else:
-                for saved_file in saved_files:
-                    current_file_element = saved_file.split('_')
-                    current_since = datetime.strptime(current_file_element[0], '%Y-%m-%dT%H:%M:%SZ')
-                    current_until = datetime.strptime(current_file_element[2], '%Y-%m-%dT%H:%M:%SZ')
+        # if detail and level_of_logging > 0:
+        print(commit_api)
+        # commit_api = f'https://api.github.com/repos/{org}/{repo}/commits?since={since_str}&until={until_str}&per_page=100'
+        # print(commit_api)
+        # break
 
-                    older = since < current_since
-                    same_old = since == current_since
-                    newer = until > current_until
-                    same_new = until == current_until
-                    if (older and newer) or (same_old and newer) or (older and same_new):
-                        need_to_delete_old_file['delete'] = True
-                        need_to_delete_old_file['file'] = saved_file
-                        break
-                        
-                    else:
-                        if detail:
-                            print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
-                                logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
-                        break
+        file_name = f'{since_str}_to_{until_str}_commits_page_{page}.json'
+        need_to_delete_old_file = {'delete': False, 'file': None}
+        if saved_files is not None:
+            if file_name in saved_files:
+                if not update:
+                    with open(f'{save_path}/{file_name}', 'r') as file:
+                        saved_file = json.load(file)
+                    
+                    if detail:
+                        print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
+                            logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
+                    # return None
+                    page += 1
+                    continue
+                else:
+                    for saved_file in saved_files:
+                        current_file_element = saved_file.split('_')
+                        current_since = datetime.strptime(current_file_element[0], '%Y-%m-%dT%H:%M:%SZ')
+                        current_until = datetime.strptime(current_file_element[2], '%Y-%m-%dT%H:%M:%SZ')
 
-    res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
-    # if res is None or res == [] or len(res) == 0:
-    #     # print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
-    #     #       logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
-    #     break
+                        older = since < current_since
+                        same_old = since == current_since
+                        newer = until > current_until
+                        same_new = until == current_until
+                        if (older and newer) or (same_old and newer) or (older and same_new):
+                            need_to_delete_old_file['delete'] = True
+                            need_to_delete_old_file['file'] = saved_file
+                            break
+                            
+                        else:
+                            if detail:
+                                print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
+                                    logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
+                            break
 
-    if not save_path.exists():
-        save_path.mkdir(parents=True)
-        if detail:
-            print(f'        {logging_code.INFO}Create{logging_code.ENDC} folder at {
-                logging_code.WARNING}{save_path}{logging_code.ENDC}')
-        saved_files = []
+                    page += 1
+                    continue
 
-    with open(f'{save_path}/{file_name}', 'w+') as file:
-        json.dump(res, file, indent=4)
-        
-    if need_to_delete_old_file['delete']:
-        old_file = save_path.joinpath(need_to_delete_old_file['file'])
-        old_file.unlink()
-        if detail:
-            print(f'        {logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
-                logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
-    else:
-        if detail:
-            print(f'        {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
-                logging_code.ENDC} in the folder {logging_code.WARNING}{save_path}{logging_code.ENDC}')
+        res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
+        if res is None or res == [] or len(res) == 0:
+            if detail and level_of_logging > 1:
+                print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
+                    logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
+            break
+
+        if not save_path.exists():
+            save_path.mkdir(parents=True)
+            if detail:
+                print(f'        {logging_code.INFO}Create{logging_code.ENDC} folder at {
+                    logging_code.WARNING}{save_path}{logging_code.ENDC}')
+            saved_files = []
+
+        with open(f'{save_path}/{file_name}', 'w+') as file:
+            json.dump(res, file, indent=4)
+            
+        if need_to_delete_old_file['delete']:
+            old_file = save_path.joinpath(need_to_delete_old_file['file'])
+            old_file.unlink()
+            if detail:
+                print(f'        {logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
+                    logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+        else:
+            if detail:
+                print(f'        {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
+                    logging_code.ENDC} in the folder {logging_code.WARNING}{save_path}{logging_code.ENDC}')
 
 
-    if detail and level_of_logging > 0:
-        print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
-        # page += 1
+        if detail and level_of_logging > 0:
+            print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+        page += 1
 
     return request_left
 
@@ -148,12 +169,15 @@ def get_commit_description(
                 print(f'{logging_code.CYAN}Found{logging_code.ENDC} {logging_code.WARNING}{commit_sha}{logging_code.ENDC} the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit')
         return
 
-    headers = {"Authorization": f"Bearer {github_token}"}
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Connection": 'keep-alive',
+    }
 
     commit_api = f'https://api.github.com/repos/{org}/{repo}/commits/{commit_sha}'
     
-    if detail:
-        print(f'    {logging_code.INFO}Getting{logging_code.ENDC} commit description from {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+    # if detail:
+    print(f'    {logging_code.INFO}Getting{logging_code.ENDC} commit description from {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
 
     res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
     if res is None:
@@ -327,6 +351,19 @@ def extract_usage_periods(
     # Convert to dictionary format
     usage_periods_result = {}
     for name, periods in usage_periods.items():
+        # if period['installed'] - period['removed'] > timedelta(days=0, hours=0, minutes=0, seconds=0):
+        #     usage_periods_result[name] = [
+        #         {
+        #             "project_name": project_name,
+        #             "version": period["version"],
+        #             'event': period['event'],
+        #             "installed_date": period["removed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
+        #             "removed_date": period["installed"].strftime("%Y-%m-%dT%H:%M:%SZ"),
+        #             "usage_period": (period["installed"] - period["removed"]).days
+        #         }
+        #         for period in periods
+        #     ]
+        # else:
         usage_periods_result[name] = [
             {
                 "project_name": project_name,
@@ -364,6 +401,7 @@ def get_interval_of_usage_period(
     """
 
     result = list()
+    sum_number_of_commits = 0
     if type(users_input) == str:
         users_input = [users_input]
 
@@ -388,21 +426,23 @@ def get_interval_of_usage_period(
         print(json.dumps(usage_periods, indent=4))
 
     for user_input in users_input:
+        # print(json.dumps(usage_periods, indent=4))
         if user_input not in usage_periods:
             if detail:
                 print(f"Skipping {user_input}, as no complete usage period found.")
             continue
+
         for usage_interval in usage_periods[user_input]:
             commits_history_path = dataset_path.joinpath("02_commits_since_install_until_remove")
             commits_description_history_path = dataset_path.joinpath("03_commits_description_since_install_until_remove")
 
             event = usage_interval['event']
             if event == 'removed':
-                if usage_interval['usage_period'] == 0:
-                    # if detail:
-                    #     print(f"Skipping {user_input}, as usage period is 0 days.")
-                    continue
-                get_commit_history(
+                # if usage_interval['usage_period'] == 0:
+                #     # if detail:
+                #     #     print(f"Skipping {user_input}, as usage period is 0 days.")
+                #     continue
+                requests_left = get_commit_history(
                     org=dependent_org_name,
                     repo=dependent_repo_name,
                     github_token=github_token,
@@ -413,6 +453,8 @@ def get_interval_of_usage_period(
                     detail=detail,
                     level_of_logging=level_of_logging
                 )
+
+                print('requests_left:', requests_left)
 
                 commit_description(
                     org=dependent_org_name,

@@ -2,7 +2,7 @@ import re
 import json
 import requests
 
-from typing import Union, Any
+from typing import Union
 from time import time, sleep
 from datetime import timedelta, datetime
 
@@ -10,25 +10,50 @@ from .logging_code import logging_code
 
 
 def detect_json_and_clean_and_fix_json(
-    broken_json: Union[str, dict]
+    broken_json: Union[str, dict],
+    api: str = None, # ! For logging purpose
 ) -> tuple[Union[dict, None], Union[bool, None]]:
     
     # Check if input is already a dictionary
-    if isinstance(broken_json, dict):
-        for key, value in broken_json.items():
-            if isinstance(value, str):
-                broken_json[key] = re.sub(r'//.*?(\n|$)', '', value)
-            elif isinstance(value, dict):
-                detect_json_and_clean_and_fix_json(value)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        detect_json_and_clean_and_fix_json(item)
-        return broken_json, None
+    # if isinstance(broken_json, dict):
+    #     for key, value in broken_json.items():
+    #         if isinstance(value, str):
+    #             broken_json[key] = re.sub(r'//.*?(\n|$)', '', value)
+    #         elif isinstance(value, dict):
+    #             detect_json_and_clean_and_fix_json(value)
+    #         elif isinstance(value, list):
+    #             for item in value:
+    #                 if isinstance(item, dict):
+    #                     detect_json_and_clean_and_fix_json(item)
+    #     return broken_json, None
 
     # First check if the string is valid JSON
     try:
-        return json.loads(broken_json)
+        if isinstance(broken_json, list):
+            for line in broken_json:
+                line = line.strip()
+                if len(line) > 2:
+                    if line[0] == '"' and line[-1] != ',':
+                        print(f'line: {line}')
+                        if line[-2] == '"':
+                            line = line + ','
+                        else:
+                            line = line + '",'
+            
+            try:
+                # return json.loads(broken_json), True
+                return json.loads(json.dumps(broken_json)), False
+            except json.JSONDecodeError as e:
+                return broken_json, True
+        elif isinstance(broken_json, str):
+            try:
+                return json.loads(broken_json), True
+            except json.JSONDecodeError:
+                return broken_json, True
+        # Not a broken json
+        elif isinstance(broken_json, dict):
+            return broken_json, False
+        
     except json.JSONDecodeError:
         # If not valid JSON, try to fix it
         # Check if string looks like JSON (starts with { or [ and ends with } or ])
@@ -56,12 +81,27 @@ def detect_json_and_clean_and_fix_json(
         # Ensure keys are quoted
         broken_json = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', broken_json)
 
+        broken_json = broken_json.split('\n')
+
+        for line in broken_json:
+            line = line.strip()
+            if len(line) > 2:
+                if line[0] == '"' and line[-1] != ',':
+                    print(f'line: {line}')
+                    if line[-2] == '"':
+                        line = line + ','
+                    else:
+                        line = line + '",'
+
         # Final attempt to parse the JSON
         try:
-            return json.loads(broken_json), True
+            # return json.loads(broken_json), True
+            return json.loads(json.dumps(broken_json)), False
         except json.JSONDecodeError as e:
             print(f'Failed to parse JSON: {e}')
-            return None, None
+            print(f'From API: {logging_code.WARNING}{api}{logging_code.ENDC}')
+            print(broken_json)
+            return None, True
 
 def log_error_limit_reached(
     package_name: str,
@@ -93,26 +133,52 @@ def request_api(
     session = requests.Session()
 
     if type(headers) is str:
-        headers = {"Authorization": f"Bearer {headers}"}
+        headers = {
+            "Authorization": f"Bearer {headers}",
+            'Connection': 'keep-alive',
+        }
         
     session.headers.update(headers)
 
-    res = session.get(api)
-    # res = requests.get(api, headers=headers)
-
+    try:
+        res = session.get(api)
+    except requests.exceptions.ConnectionError as e:
+        session.close()
+        session = requests.Session()
+        session.headers.update(headers)
+        res = session.get(api)
+        
     if 'x-ratelimit-remaining' in res.headers.keys():
         requests_left = res.headers['x-ratelimit-remaining']
     else:
         requests_left = None
 
+    time_stamp = datetime.fromtimestamp(time())
     if 'x-ratelimit-reset' in res.headers.keys():
-        time_stamp = datetime.fromtimestamp(time())
         reset_time = datetime.fromtimestamp(
             int(res.headers['x-ratelimit-reset']))
-        duration = reset_time - time_stamp
 
     else:
-        duration = 60
+        try:
+            rate_limit = session.get('https://api.github.com/rate_limit')
+        except requests.exceptions.ConnectionError as e:
+            session.close()
+            session = requests.Session()
+            session.headers.update(headers)
+            rate_limit = session.get('https://api.github.com/rate_limit')
+
+        try:
+            rate_limit = rate_limit.json()
+        except json.decoder.JSONDecodeError as e:
+            print(rate_limit.text)
+            
+        reset_time = rate_limit['rate']['reset']
+        reset_time = datetime.fromtimestamp(reset_time)
+
+        if requests_left is None:
+            requests_left = rate_limit['rate']['remaining']
+
+    duration = reset_time - time_stamp
 
     match res.status_code:
         case 401:
@@ -143,11 +209,11 @@ def request_api(
                         try:
                             res = session.get(api)
                             res = res.json()
+                            return res, requests_left
                         except requests.exceptions.RequestException as e:
                             print(f'{logging_code.ERROR}ERROR{logging_code.ENDC}, with {
                                   logging_code.WARNING}{e}{logging_code.ENDC}')
                             return None, requests_left
-                        return res, requests_left
                 case _:
                     if res.status_code != 200:
                         print(f'{logging_code.ERROR}ERROR{logging_code.ENDC}, with {logging_code.WARNING}{res.status_code}{
@@ -167,10 +233,10 @@ def request_api(
             try:
                 res = session.get(api)
                 res = res.json()
+                return res, requests_left
             except requests.exceptions.RequestException as e:
                 print(f'{logging_code.ERROR}ERROR{logging_code.ENDC}, with {logging_code.WARNING}{e}{logging_code.ENDC}')
                 return None, requests_left
-            return res, requests_left
 
         case 422:
             print(f'{logging_code.ERROR}ERROR{logging_code.ENDC}, exceed limit requests with {logging_code.WARNING}{res.status_code}{
@@ -185,6 +251,7 @@ def request_api(
 
             try:
                 res = res.json()
+                return res, requests_left
             except json.decoder.JSONDecodeError as e:
                 if debug:
                     print(f'{logging_code.WARNING}Debugging step{logging_code.ENDC}')
@@ -202,5 +269,3 @@ def request_api(
                     return None, requests_left
 
                 return result, requests_left
-
-            return res, requests_left
