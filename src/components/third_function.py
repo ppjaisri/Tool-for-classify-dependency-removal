@@ -59,19 +59,19 @@ def get_commit_history(
             if file_name in saved_files:
                 if not update:
                     if detail:
-                        print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
+                        print(f'\t\t{logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{file_name}{logging_code.ENDC} the folder {
                             logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
-                    return None
+                    return request_left
                 else:
                     for saved_file in saved_files:
                         current_file_element = saved_file.split('_')
                         current_since = datetime.strptime(current_file_element[0], '%Y-%m-%dT%H:%M:%SZ')
                         current_until = datetime.strptime(current_file_element[2], '%Y-%m-%dT%H:%M:%SZ')
 
-                        older = since < current_since
-                        same_old = since == current_since
-                        newer = until > current_until
-                        same_new = until == current_until
+                        older       = since < current_since
+                        same_old    = since == current_since
+                        newer       = until > current_until
+                        same_new    = until == current_until
                         if (older and newer) or (same_old and newer) or (older and same_new):
                             need_to_delete_old_file['delete'] = True
                             need_to_delete_old_file['file'] = saved_file
@@ -79,21 +79,21 @@ def get_commit_history(
                             
                         else:
                             if detail:
-                                print(f'        {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
+                                print(f'\t\t{logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{saved_file}{logging_code.ENDC} the folder {
                                     logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit', end='\n')
                             break
 
         res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
         if res is None or res == [] or len(res) == 0:
             if detail:
-                print(f'        {logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
+                print(f'\t\t{logging_code.CYAN}No commit{logging_code.ENDC} between {logging_code.WARNING}{since}{logging_code.ENDC} and {
                       logging_code.WARNING}{until}{logging_code.ENDC} in the GitHub. Skip to the next dependency')
             break
 
         if not save_path.exists():
             save_path.mkdir(parents=True)
             if detail:
-                print(f'        {logging_code.INFO}Create{logging_code.ENDC} folder at {
+                print(f'\t\t{logging_code.INFO}Create{logging_code.ENDC} folder at {
                     logging_code.WARNING}{save_path}{logging_code.ENDC}')
             saved_files = []
 
@@ -104,16 +104,16 @@ def get_commit_history(
             old_file = save_path.joinpath(need_to_delete_old_file['file'])
             old_file.unlink()
             if detail:
-                print(f'        {logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
+                print(f'\t\t{logging_code.SUCCESS}Update{logging_code.ENDC} from {logging_code.WARNING}{need_to_delete_old_file["file"]}{logging_code.ENDC} to {logging_code.WARNING}{file_name}{
                     logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
         else:
             if detail:
-                print(f'        {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
+                print(f'\t\t{logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{file_name}{
                   logging_code.ENDC} in the folder {logging_code.WARNING}{save_path}{logging_code.ENDC}')
 
 
         if detail and level_of_logging > 0:
-            print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+            print(f'\t\t{logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
         page += 1
 
     return request_left
@@ -129,9 +129,9 @@ def get_commit_description(
     detail: bool = False,
     level_of_logging: int = 0,
 ) -> None:
-    downloaded_folder = save_path.joinpath(f'{org}:{repo}')
-    downloaded_files = downloaded_folder.glob('*.json')
-    downloaded_files = [file.name.rsplit('_', 1)[-1].rsplit('.', 1)[0] for file in downloaded_files]
+    downloaded_folder   = save_path.joinpath(f'{org}:{repo}')
+    downloaded_files    = downloaded_folder.glob('*.json')
+    downloaded_files    = [file.name.rsplit('_', 1)[-1].rsplit('.', 1)[0] for file in downloaded_files]
 
     if commit_sha in downloaded_files:
         if not update:
@@ -147,7 +147,7 @@ def get_commit_description(
     commit_api = f'https://api.github.com/repos/{org}/{repo}/commits/{commit_sha}'
     
     if detail and level_of_logging > 2:
-        print(f'    {logging_code.INFO}Getting{logging_code.ENDC} commit description from {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+        print(f'\t{logging_code.INFO}Getting{logging_code.ENDC} commit description from {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
 
     res, request_left = request_api(commit_api, f'{org}:{repo}', headers, spare_api)
     if res is None:
@@ -164,7 +164,7 @@ def get_commit_description(
         json.dump(res, file, indent=4)
 
     if detail:
-        print(f'    {logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{save_file_name}{logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+        print(f'\t{logging_code.SUCCESS}Saved{logging_code.ENDC} {logging_code.WARNING}{save_file_name}{logging_code.ENDC} in the folder {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
 
     return request_left
 
@@ -192,7 +192,7 @@ def commit_description(
             commit_sha = commit['sha']
             
             if detail:
-                print(f'    {logging_code.INFO}Getting{logging_code.ENDC} commits description from commits history of {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
+                print(f'\t{logging_code.INFO}Getting{logging_code.ENDC} commits description from commits history of {logging_code.WARNING}{org}:{repo}{logging_code.ENDC}')
 
             request_left = get_commit_description(
                 org=org,
@@ -206,7 +206,7 @@ def commit_description(
             )
 
             if detail and level_of_logging > 2:
-                print(f'    {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+                print(f'\t{logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
 
         print(f'{logging_code.SUCCESS}Done{logging_code.ENDC} getting commits description history of {
             logging_code.WARNING}{org}:{repo}{logging_code.ENDC} between {logging_code.CYAN}{since}{logging_code.ENDC} and {logging_code.CYAN}{until}{logging_code.ENDC}\n')
@@ -224,8 +224,8 @@ def extract_usage_periods(
 ) -> list[dict]:
     """Extracts the usage period of dependencies, including removal, moves, and updates."""
     usage_periods = defaultdict(list)
-
     updated_dict = defaultdict(list)
+    
     for upd in updated:
         updated_dict[upd["name"].lower()].append(upd)
 
@@ -335,7 +335,6 @@ def get_interval_of_usage_period(
     for usage_interval in usage_periods[user_input]:
         commits_history_path = dataset_path.joinpath("02_commits_since_install_until_remove")
         commits_description_history_path = dataset_path.joinpath("03_commits_description_since_install_until_remove")
-
 
         get_commit_history(
             org=dependent_org_name,

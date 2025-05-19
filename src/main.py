@@ -25,7 +25,7 @@ def analyze_project(
             config_file_path = Path(config_file)
         except Exception as e:
             print('{}The config file is not found at {}{}.'.format(logging_code.ERROR, logging_code.ENDC, config_file))
-            exit(-1)
+            print('The tool will use the default configuration.')
 
         with open(config_file_path, 'r') as file:
             try:
@@ -34,18 +34,14 @@ def analyze_project(
                 print('{}The config file is not in JSON format.{}'.format(logging_code.ERROR, logging_code.ENDC))
                 exit(-1)
 
-    github_token = config['github_token'] if 'github_token' in config.keys() else None
-
-    current_path = Path.cwd()
-    if 'src' not in str(current_path):
-        keywords_path = current_path.joinpath('src/patterns_and_keywords')
+        github_token = config['github_token'] if 'github_token' in config.keys() else None
+        root_dataset_path = config['dataset_path'] if 'dataset_path' in config.keys() else None
     else:
-        keywords_path = current_path.joinpath('patterns_and_keywords')
+        github_token = None
+        root_dataset_path = None
 
-    if 'dataset_path' in config.keys():
-        root_dataset_path = config['dataset_path']
-    else:
-        # Prepare the application
+    if not root_dataset_path:
+        current_path = Path.cwd()
         if 'src' not in str(current_path):
             root_dataset_path = current_path.parent.joinpath('dataset')
         else:
@@ -96,7 +92,6 @@ def analyze_project(
     # Retuen the list of dependency that has been removed.
 
     user_input = ask_user_to_choose_dependency(
-        # moved_dependencies=moved,
         removed_dependencies=removed,
     )
 
@@ -144,7 +139,6 @@ def analyze_project(
             dependency_res = removal_scenario_classification(
                 dependency_removal_scenarios=dependency,
                 dataset_path=root_dataset_path,
-                keywords_path=keywords_path,
                 github_token=github_token,
                 update=update,
                 detail=detail,
@@ -169,7 +163,7 @@ def analyze_project(
             previous_input=user_input
         )
 
-    exit(0)
+    return classified_scenarios
 
 def main() -> None:
     # Parse the arguments
@@ -228,6 +222,6 @@ def main() -> None:
             config_file=args.config
         )
 
-
 if __name__ == '__main__':
     main()
+    exit(0)

@@ -45,35 +45,18 @@ def get_package_json_history(
 
         for commit in res:
             try:
-                commit_date = commit['commit']['author']['date']
-            except:
-                try:
-                    print('Cannot get date from commit[\'commit\'][\'author\']')
-                    print(json.dumps(commit['commit']['author']))
-                except:
-                    try:
-                        print('Cannot get author from commit[\'commit\']')
-                        print(json.dumps(commit['commit']))
-                    except:
-                        print('Cannot get commit from commit')
-                        print(json.dumps(commit))
-                        # raise Exception('Error at date')
-            try:
+                commit_date = commit['commit']['committer']['date']
                 commit_sha = commit['sha']
-            except:
-                print('Cannot get sha from commit')
-                print(json.dumps(commit))
+            except KeyError:
                 continue
-                # raise Exception('Error at sha')
                 
             if not save_path.exists():
                 save_path.mkdir(parents=True)
             save_file_name = f'{save_path}/{commit_date}_{commit_sha}.json'
 
-            # print(save_file_name)
             if save_file_name in saved_files and not update:
                 if detail:
-                    print(f'    {logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{save_file_name}{logging_code.ENDC} the folder {
+                    print(f'\t{logging_code.WARNING}Found{logging_code.ENDC} {logging_code.WARNING}{save_file_name}{logging_code.ENDC} the folder {
                         logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next commit')
                 continue
 
@@ -86,7 +69,6 @@ def get_package_json_history(
                 break
 
             if 'download_url' not in description_res.keys():
-                # print(json.dumps(description_res, indent=4))
                 continue
             content_api = description_res['download_url']
 
@@ -103,12 +85,12 @@ def get_package_json_history(
             no_download = False
 
         if detail:
-            print(f'        {logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
+            print(f'\t\t{logging_code.WARNING}Request left{logging_code.ENDC}: {request_left}')
         page += 1
         first_attemp = False
 
     if no_download and detail:
-        print(f'        {logging_code.WARNING}Already download{logging_code.ENDC} all version of package.json of {
+        print(f'\t\t{logging_code.WARNING}Already download{logging_code.ENDC} all version of package.json of {
               logging_code.WARNING}{org}:{repo}{logging_code.ENDC}, skip to the next dependent')
         
     if api_not_working:
@@ -149,7 +131,7 @@ def history_of_package_json(
 
     if update or need_to_download:
         if detail:
-            print(f'    {logging_code.INFO}Getting{logging_code.ENDC} history of package.json of {
+            print(f'\t{logging_code.INFO}Getting{logging_code.ENDC} history of package.json of {
                 logging_code.WARNING}{org}{repo}{logging_code.ENDC}')
         result = get_package_json_history(
             org=org,
@@ -163,7 +145,7 @@ def history_of_package_json(
         if result is None:
             return None, None, None, None
 
-        print(f'    {logging_code.WARNING}Request left{logging_code.ENDC}: {result}')
+        print(f'\t{logging_code.WARNING}Request left{logging_code.ENDC}: {result}')
         print(f'{logging_code.SUCCESS}Done{logging_code.ENDC} getting history of package.json of {
             logging_code.WARNING}{org}:{repo}{logging_code.ENDC}\n')
     

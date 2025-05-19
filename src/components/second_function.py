@@ -10,6 +10,12 @@ from .logging_code import logging_code
 def ask_user_to_choose_dependency(
     removed_dependencies: list[dict],
 ) -> Union[set, bool]:
+    """
+        This function is the second function.
+        Purpose: Show the list of dependency that has been removed to users.
+                 Users can choose the dependency that they want to analyse.\n
+        Result:  Return the list of dependency that has been removed.
+    """
     print('These are name of dependencies which {}have been removed{} from list of dependencies.'.format(
         logging_code.INFO, logging_code.ENDC
     ))

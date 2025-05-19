@@ -29,7 +29,7 @@ def result_and_another_input(
     """
 
     # * Save procedure
-    save_path = dataset_path.joinpath('06_results_of_classification')
+    save_path = dataset_path.joinpath('05_results_of_classification')
     number_of_saved_folders = list(save_path.glob('*'))
     amount_of_each_project = {}
     for folder in number_of_saved_folders:
@@ -73,6 +73,8 @@ def result_and_another_input(
                 readable_group = 'Dependency Removals with Direct Code Impact'
             elif group == 'removal_not_affected_code':
                 readable_group = 'Dependency Removals without Direct Code Impact'
+            elif group == 'not_related':
+                readable_group = 'Not related to dependency removal'
             elif group == 'unknown':
                 readable_group = 'Unknown'
 
@@ -110,7 +112,7 @@ def result_and_another_input(
         report_full = []
 
         for dependency_name_in_report, report in reports.items():
-            report_full.append(dependency_name_in_report)
+            report_full.append(f'Dependency name: {dependency_name_in_report}')
             for version, report_description in report.items():
                 report_full.append(f'  - Version {version}: Found {report_description['all_removed']} removed scenarios.')
                 for group, amount in report_description['scenarios'].items():
@@ -175,7 +177,10 @@ def result_and_another_input(
         except KeyboardInterrupt:
             return False, None
         
-    target_dependency = first_res[user_input - 1]
+    if type(user_input) == int:
+        target_dependency = first_res[user_input - 1]
+    else:
+        target_dependency = user_input
     print('You have selected \"{}{}{}\"'.format(
         logging_code.WARNING,
         target_dependency,
