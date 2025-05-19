@@ -25,3 +25,7 @@ config.json
 
 # Not used
 *visualizer*
+
+# dataset
+*.csv
+*.json
